@@ -185,21 +185,24 @@ chance_to_mutate=1#do this
 possible_dna_values=list(range(0,9))
 dna_length=30
 tournament_size=3
+original_population=100
 #################################################
 
 generations_passed=0
+average_fitness_list=[]
+best_fitness_list=[]
 #optimal_dna="1"*dna_length
+
+#Creating the optimal/target dna
 optimal_dna=""
 for i in range(0,dna_length):
     optimal_dna+= str(rd.randint(min(possible_dna_values),max(possible_dna_values)))
 
 #possible_dna_values=range(0,10)
-original_population=100
-average_fitness_list=[]
-best_fitness_list=[]
 
 population= initialise_population(original_population,dna_length,possible_dna_values, optimal_dna)
 
+#the driver/evolution loop
 while(generations_passed<max_generations):
     winners=tournament_selection(tournament_size,population)
     population=winners
@@ -210,7 +213,6 @@ while(generations_passed<max_generations):
     #print("Kids returned:",len(children))
     
     ##add their kids back into population  
-    # NOTE: @Blake, population will not be maintained as for x parents, only x/2 kids are generated (not x kids0)
     for child in children:
         population.append(child)
 
@@ -224,6 +226,7 @@ while(generations_passed<max_generations):
 
     ##increase generations_passed
     generations_passed+=1
+    
     #if perfect fitness then break or max_generations reached break
     
     if(convergence(population,optimal_dna)): #if convergence has been reached, break out of the loop
