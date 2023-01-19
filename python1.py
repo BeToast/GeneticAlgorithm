@@ -65,8 +65,11 @@ def tournament_selection(tournament_size,population):
 
         #giving fighters a pass
         if (len(population)<tournament_size):
-            strongest_gladiators.append(population)
-            print("Not enough fighters")
+            #strongest_gladiators.append(population)
+            #this^ was returning an array of gladiators, rather than appending each individually.
+            #so then it would not be able to find the 'dna' attribute of a list later on.
+            for p in population:
+                strongest_gladiators.append(p)
             return strongest_gladiators
 
         #print("Before fight",len(population))
@@ -107,10 +110,10 @@ def mutation(population,mutation_possibilities,percentage_chance):
 
 
 #The Cross-over function
-def cross_over_two_parents(parents, dna_length, optimal_dna):
+def cross_over_two_parents(parent1, parent2, dna_length, optimal_dna):
     
-    dna_parent_one=parents[0]["dna"]
-    dna_parent_two=parents[1]["dna"]
+    dna_parent_one=parent1['dna']
+    dna_parent_two=parent2['dna']
     cross_over_index = rd.randint(0, dna_length-1)
     slice_one = slice(cross_over_index)
     slice_two = slice(cross_over_index, dna_length)
@@ -138,19 +141,20 @@ def cross_over(population, dna_length, original_population_size):
     needed_kids=original_population_size-len(population)
     passes=0
     while len(children) < needed_kids:
-        if passes%2==0: #alternate between order by fitness and randomness
-            population = sorted(population, key=lambda person: person['fitness'], reverse=True) #sort by fitness
-            #print("----------------------------------------------------------------")
-            #print(population)
-            passes+=1
-        else:
-            rd.shuffle(population) #randomly re-order list
-            passes+=1
+        # if passes%2==0: #alternate between order by fitness and randomness
+        #     #population = sorted(population, key=lambda person: person["fitness"], reverse=True) #sort by fitness
+        #     population.sort(key=lambda person: person["fitness"], reverse=True)
+        #     passes+=1
+        # else:
+        #     rd.shuffle(population) #randomly re-order list
+        #     passes+=1
+
+        rd.shuffle(population)
         
         for i in range(1, len(population), 2): #1,0 & 3 2 ...... 1,0 & 3,2 & 5,4
             #children.append( cross_over_two_parents(list(population[i], population[i+1]), dna_length) )
             #print(f"index1 is {i-1} and index2 is {i}")
-            crossed_over=cross_over_two_parents([population[i-1], population[i]], dna_length, optimal_dna)
+            crossed_over=cross_over_two_parents(population[i-1], population[i], dna_length, optimal_dna)
             children.extend(crossed_over)
             if len(children) >= needed_kids:
                 return children
@@ -175,14 +179,12 @@ def generate_graph(average_fitness_list, length, title, x_axis, y_axis):
     plt.show()
 
 
-
-
 ################################################# hyperparamters
 max_generations=160
 chance_to_mutate=1#do this
 possible_dna_values=list(range(0,9))
 dna_length=30
-tournament_size=2
+tournament_size=3
 #################################################
 
 generations_passed=0
