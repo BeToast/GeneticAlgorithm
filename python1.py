@@ -175,17 +175,17 @@ def generate_graph(average_fitness_list, length, title, x_axis, y_axis):
     plt.show()
 
 
-generations_passed=0
-max_generations=160
 
 
 ################################################# hyperparamters
+max_generations=160
 chance_to_mutate=1#do this
 possible_dna_values=list(range(0,9))
 dna_length=30
 tournament_size=2
 #################################################
 
+generations_passed=0
 #optimal_dna="1"*dna_length
 optimal_dna=""
 for i in range(0,dna_length):
