@@ -109,7 +109,7 @@ def mutation(population,mutation_possibilities,percentage_chance):
     return population
 
 
-#The Cross-over function
+#The Cross-over function that generates kids
 def cross_over_two_parents(parent1, parent2, dna_length, optimal_dna):
     
     dna_parent_one=parent1['dna']
@@ -135,7 +135,7 @@ def cross_over_two_parents(parent1, parent2, dna_length, optimal_dna):
     
     return children
 
-
+# The Cross-Over function that acts as a wrapper for the actual cross_over functionality
 def cross_over(population, dna_length, original_population_size):
     children=[]
     needed_kids=original_population_size-len(population)
@@ -226,7 +226,7 @@ while(generations_passed<max_generations):
 
     ##increase generations_passed
     generations_passed+=1
-    
+
     #if perfect fitness then break or max_generations reached break
     
     if(convergence(population,optimal_dna)): #if convergence has been reached, break out of the loop
