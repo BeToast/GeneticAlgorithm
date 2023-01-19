@@ -1,15 +1,20 @@
 import random as rd
 import matplotlib.pyplot as plt
 
+def calc_fitness(dna, target):
+    score=0
+    if dna == '0'*len(dna):
+        return 2*len(dna)
 
-def calc_fitness(dna):
-    return(dna.count("1"))
+    for i in range(0, len(dna)):
+        if dna[i]==target[i]:
+            score+=1
+    return score
 
-
-def update_fitness(population):
+def update_fitness(population, optimal_dna):
     cumulative_fitness = 0
     for person in population:
-        person["fitness"]=calc_fitness(person["dna"])
+        person["fitness"]=calc_fitness(person["dna"], optimal_dna)
         cumulative_fitness += person["fitness"]
     return cumulative_fitness/len(population) #return the average fitness for this generation.
 
@@ -22,7 +27,7 @@ def convergence(population,optimal_dna):
 
 
 ##randomly initialising the population
-def initialise_population(pop_size,length_of_dna,possible_dna_values):
+def initialise_population(pop_size,length_of_dna,possible_dna_values, optimal_dna):
     population=[]
     max_dna_value=max(possible_dna_values)
     min_dna_value=min(possible_dna_values)
@@ -32,11 +37,11 @@ def initialise_population(pop_size,length_of_dna,possible_dna_values):
         for i in range(0,length_of_dna):
             initial+= str(rd.randint(min_dna_value,max_dna_value))
             #making a dict for each gladiator.
-            gladiator={"dna":initial,"fitness":calc_fitness(initial),"losses":0, "wins":0}
 
+        gladiator={"dna":initial,"fitness":calc_fitness(initial, optimal_dna),"losses":0, "wins":0}
         population.append(gladiator)
 
-    update_fitness(population)
+    update_fitness(population, optimal_dna)
 
     return population # returning a list of generated populations
 
@@ -63,7 +68,6 @@ def tournament_selection(tournament_size,population):
             strongest_gladiators.append(population)
             print("Not enough fighters")
             return strongest_gladiators
-           
 
         #print("Before fight",len(population))
         
@@ -83,15 +87,15 @@ def tournament_selection(tournament_size,population):
 
 #The Mutation function
 
-def mutation(population,mutation_possibilities):
+def mutation(population,mutation_possibilities,percentage_chance):
 
     for person in population:
 
         dna_to_mutate=person["dna"]
         new_dna=[] #list to create the mutated dna
         for i in range(0,len(dna_to_mutate)):
-           
-            if(rd.randint(0,10)<2): #chance to mutate (20% by default)
+          
+            if(rd.randint(0,100)<percentage_chance): #chance to mutate (20% by default)
                 mutation_char=mutation_possibilities[rd.randint(0,len(mutation_possibilities)-1)]
                 new_dna.append(str(mutation_char) ) #what it mutates to
             else:
@@ -103,7 +107,7 @@ def mutation(population,mutation_possibilities):
 
 
 #The Cross-over function
-def cross_over_two_parents(parents, dna_length):
+def cross_over_two_parents(parents, dna_length, optimal_dna):
     
     dna_parent_one=parents[0]["dna"]
     dna_parent_two=parents[1]["dna"]
@@ -114,14 +118,14 @@ def cross_over_two_parents(parents, dna_length):
     children = []
 
     ###NOTE: @Blake, shouldn't each Child be a gladiator object?. They just can't be strings. I've made the change
-   
+
     #children.append(dna_parent_one[slice_one]+dna_parent_two[slice_two])
     #children.append(dna_parent_two[slice_one]+dna_parent_one[slice_two])
     dna_child1=str(dna_parent_one[slice_one])+str(dna_parent_two[slice_two])
     dna_child2=str(dna_parent_two[slice_one])+str(dna_parent_one[slice_two])
     
-    child1={"dna":dna_child1,"fitness":calc_fitness(dna_child1),"losses":0, "wins":0}
-    child2={"dna":dna_child2,"fitness":calc_fitness(dna_child2),"losses":0, "wins":0}
+    child1={"dna":dna_child1,"fitness":calc_fitness(dna_child1, optimal_dna),"losses":0, "wins":0}
+    child2={"dna":dna_child2,"fitness":calc_fitness(dna_child2, optimal_dna),"losses":0, "wins":0}
 
     children.append(child1)
     children.append(child2)
@@ -146,7 +150,7 @@ def cross_over(population, dna_length, original_population_size):
         for i in range(1, len(population), 2): #1,0 & 3 2 ...... 1,0 & 3,2 & 5,4
             #children.append( cross_over_two_parents(list(population[i], population[i+1]), dna_length) )
             #print(f"index1 is {i-1} and index2 is {i}")
-            crossed_over=cross_over_two_parents([population[i-1], population[i]], dna_length)
+            crossed_over=cross_over_two_parents([population[i-1], population[i]], dna_length, optimal_dna)
             children.extend(crossed_over)
             if len(children) >= needed_kids:
                 return children
@@ -155,12 +159,13 @@ def cross_over(population, dna_length, original_population_size):
 
 
 #Plot the average fitness of the population versus the generations passed.
-def generate_graph(average_fitness_list, length):
-    plt.xlabel("Average Fitness of Population")
-    plt.ylabel("Generations Passed")
-    plt.title("Plotting average fitness of population against Generations passed")
+def generate_graph(average_fitness_list, length, title, x_axis, y_axis):
+  
+    plt.xlabel(x_axis)
+    plt.ylabel(y_axis)
+    plt.title(title)
 
-    print(f"Max fitness value identified: {max(average_fitness_list)}")
+    print(f"Max average fitness value identified: {max(average_fitness_list)}")
 
     generations=list(range(0,length))
     #for i in range (0,len(average_fitness_list)):
@@ -171,18 +176,27 @@ def generate_graph(average_fitness_list, length):
 
 
 generations_passed=0
-max_generations=10
-tournament_size=2
-chance_to_mutate=0#do this
-possible_dna_values=[0,1]
-dna_length=30
+max_generations=160
 
-optimal_dna="1"*dna_length
+
+################################################# hyperparamters
+chance_to_mutate=1#do this
+possible_dna_values=list(range(0,9))
+dna_length=30
+tournament_size=2
+#################################################
+
+#optimal_dna="1"*dna_length
+optimal_dna=""
+for i in range(0,dna_length):
+    optimal_dna+= str(rd.randint(min(possible_dna_values),max(possible_dna_values)))
+
 #possible_dna_values=range(0,10)
 original_population=100
 average_fitness_list=[]
+best_fitness_list=[]
 
-population= initialise_population(original_population,dna_length,possible_dna_values)
+population= initialise_population(original_population,dna_length,possible_dna_values, optimal_dna)
 
 while(generations_passed<max_generations):
     winners=tournament_selection(tournament_size,population)
@@ -196,21 +210,25 @@ while(generations_passed<max_generations):
     ##add their kids back into population  
     # NOTE: @Blake, population will not be maintained as for x parents, only x/2 kids are generated (not x kids0)
     for child in children:
-         population.append(child)
+        population.append(child)
 
     #print("Population after kids",len(population))
     #mutate population
-    population=mutation(population,possible_dna_values)
+    population=mutation(population,possible_dna_values, chance_to_mutate)
 
-    average_fitness_list.append(update_fitness(population))
+    average_fitness_list.append(update_fitness(population, optimal_dna))
+    population = sorted(population, key=lambda person: person['fitness'], reverse=True)
+    best_fitness_list.append(population[0]['fitness'])
 
     ##increase generations_passed
     generations_passed+=1
     #if perfect fitness then break or max_generations reached break
     
     if(convergence(population,optimal_dna)): #if convergence has been reached, break out of the loop
-
-        print("Converged!")        
+        print(f"Converged!")        
         break
 
-generate_graph(average_fitness_list,len(average_fitness_list))
+population = sorted(population, key=lambda person: person['fitness'], reverse=True)
+print(f"generations_passed={generations_passed}\nbest_dna={population[0]['dna']}")
+generate_graph(average_fitness_list,len(average_fitness_list), "Plotting average fitness of population against Generations passed", "Average Fitness of Population","Generations Passed")
+generate_graph(best_fitness_list,len(average_fitness_list), "Plotting best fitness of population against Generations passed", "Best Fitness of Population","Generations Passed")
