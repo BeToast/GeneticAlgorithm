@@ -180,11 +180,11 @@ def generate_graph(average_fitness_list, length, title, x_axis, y_axis):
 
 
 ################################################# hyperparamters
-max_generations=160
-chance_to_mutate=1#do this
-possible_dna_values=list(range(0,9))
+max_generations=100
+chance_to_mutate=1
+possible_dna_values=list(range(0,2))#list(range(0,10))
 dna_length=30
-tournament_size=3
+tournament_size=2
 original_population=100
 #################################################
 
