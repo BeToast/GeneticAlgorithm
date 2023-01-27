@@ -2,6 +2,23 @@ import random as rd
 import matplotlib.pyplot as plt
 import math
 
+[[0,1,2][6,7][8,9][10,11][12,13][3,4,5][14,15][16,17][18,19][20,21][][]]
+
+population={
+    "allocation0":{
+        "lecturer1":{
+            "capacity":int,
+            "students":array(len(capacity))
+
+            len(static_dna_values)), "fitness":0
+        }
+    }
+    "allocation99"{
+
+    }
+}
+
+
 # def calc_fitness(dna, target):
 #     score=0
 #     if dna == '0'*len(dna):
@@ -36,9 +53,23 @@ def calc_lecture_allocation_values(num_students, num_lecturers):
 
 # ##randomly initialising the population
 def initialise_population(pop_size, static_dna_values):
-    population=[]
+    population={}
     for p in range(pop_size):
-        gladiator={"dna":rd.sample(static_dna_values, len(static_dna_values)), "fitness":0}
+        allocation="allocation"+str(p)
+        student_index_list=range(0,num_students)
+        rd.shuffle(static_dna_values)
+        
+        for i in range(0, num_lecturers):
+            lecturer="lecturer"+str(i)
+            curr_students = rd.sample(student_index_list,static_dna_values[i])
+            population[allocation][lecturer]={
+                "capacity": static_dna_values[i],
+                "students": curr_students
+            }
+            student_index_list = list(set(student_index_list)-set(curr_students))
+
+        # gladiator={"dna":rd.sample(static_dna_values, len(static_dna_values)), "fitness":0}
+
         population.append(gladiator)
     return population # returning a list of generated populations
 
