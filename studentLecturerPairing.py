@@ -1,23 +1,7 @@
 import random as rd
 import matplotlib.pyplot as plt
 import math
-
-[[0,1,2][6,7][8,9][10,11][12,13][3,4,5][14,15][16,17][18,19][20,21][][]]
-
-population={
-    "allocation0":{
-        "lecturer1":{
-            "capacity":int,
-            "students":array(len(capacity))
-
-            len(static_dna_values)), "fitness":0
-        }
-    }
-    "allocation99"{
-
-    }
-}
-
+import operator
 
 # def calc_fitness(dna, target):
 #     score=0
@@ -29,12 +13,39 @@ population={
 #             score+=1
 #     return score
 
-# def update_fitness(population, optimal_dna):
-#     cumulative_fitness = 0
-#     for person in population:
-#         person["fitness"]=calc_fitness(person["dna"], optimal_dna)
-#         cumulative_fitness += person["fitness"]
-#     return cumulative_fitness/len(population) #return the average fitness for this generation.
+def random_student_preferences(num_students, num_lecturers):
+    student_preferences = []
+    for i in range(num_students):
+        bingus= list(range(num_lecturers))
+        rd.shuffle(bingus)
+        student_preferences.append(bingus)
+    del bingus # you deserve armageddon
+    return student_preferences
+
+
+"""
+get students who are assigned to lecturer
+find index of lecturer in student_preferences[stduent]
+fitness is the sum(of the index where the lectures is in student_preferences)
+0 is best
+"""
+
+
+def update_fitness(allocation_dict, student_preferences):
+    fitness = 0
+    for i in range(len(allocation_dict)-1): # fitness is first index.
+        student_indexes = allocation_dict["lecturer"+str(i)]["students"]
+        '''
+        student_indexes is a list of students assigned to lectuere [0,5]
+        accesss studnet preferences for each student
+        get index of lectuere in student_index
+        '''
+        lecturer_fitness = 0
+        for index in student_indexes:
+            lecturer_fitness += student_preferences[index].index(i)
+        fitness += lecturer_fitness
+    return fitness
+
 
 # def convergence(population,optimal_dna):
 #     for person in population:
@@ -46,92 +57,71 @@ population={
 def calc_lecture_allocation_values(num_students, num_lecturers):
     min_allocations = math.floor(num_students/num_lecturers)
     num_excess = num_students%num_lecturers
-    static_dna_values = [min_allocations]*num_students
+    static_dna_values = [min_allocations]*num_lecturers
     for i in range(num_excess):
         static_dna_values[i]+=1
     return static_dna_values
 
 # ##randomly initialising the population
-def initialise_population(pop_size, static_dna_values):
-    population={}
+def initialise_population(pop_size, lecturer_capacties, student_preferences):
+    population=[]
     for p in range(pop_size):
-        allocation="allocation"+str(p)
+        population.append({})
         student_index_list=range(0,num_students)
-        rd.shuffle(static_dna_values)
+        rd.shuffle(lecturer_capacties) # shuffle what lecturers get what capatitcy
         
         for i in range(0, num_lecturers):
             lecturer="lecturer"+str(i)
-            curr_students = rd.sample(student_index_list,static_dna_values[i])
-            population[allocation][lecturer]={
-                "capacity": static_dna_values[i],
-                "students": curr_students
-            }
+            curr_students = rd.sample(student_index_list,lecturer_capacties[i]) # get students equal to lecturer capacity
+            
+            population[p][lecturer] = {"capacity": lecturer_capacties[i], "students": curr_students}
+            # population[allocation].update("f{lecturer}" : 
             student_index_list = list(set(student_index_list)-set(curr_students))
 
-        # gladiator={"dna":rd.sample(static_dna_values, len(static_dna_values)), "fitness":0}
-
-        population.append(gladiator)
+        population[p].update({"fitness":""})
+        population[p].update({"fitness":update_fitness(population[p].copy(), student_preferences)})
     return population # returning a list of generated populations
-
-# def initialise_population(pop_size,length_of_dna):
-#     population=[]
-#     max_dna_value=max(possible_dna_values)
-#     min_dna_value=min(possible_dna_values)
-#     for j in range(pop_size):
-#         initial=""
-
-#         for i in range(0,length_of_dna):
-#             initial+= str(rd.randint(min_dna_value,max_dna_value))
-#             #making a dict for each gladiator.
-
-#         gladiator={"dna":initial,"fitness":calc_fitness(initial, optimal_dna),"losses":0, "wins":0}
-#         population.append(gladiator)
-
-#     update_fitness(population, optimal_dna)
-
-#     return population # returning a list of generated populations
 
 
 # #a "fight" is just fitness of x vs fitness of y. The gladiator with greater fitness "wins"
 # #winner moves on to the next generation. Losers?
 
-# def fight(gladiators): #gladiators is a list of gladiators.
-#     currWinner = gladiators[0]
-#     for i in range(1, len(gladiators)):
-#         if gladiators[i]["fitness"] > currWinner["fitness"]:
-#             currWinner = gladiators[i]
-#     return currWinner
+def fight(gladiators): #gladiators is a list of gladiators.
+    currWinner = gladiators[0]
+    for i in range(1, len(gladiators)):
+        if gladiators[i]["fitness"] < currWinner["fitness"]:
+            currWinner = gladiators[i]
+    return currWinner
 
 # #returns strongest_gladiators with size population/tournament_size
-# def tournament_selection(tournament_size,population):
-    
-#     strongest_gladiators=[]
-#     num_fights=round(len(population)/tournament_size)
-#     for i in range(0, num_fights):
+def tournament_selection(tournament_size,population):
+    # lectures are gladiatores for flavour
+    strongest_gladiators=[]
+    num_fights=round(len(population)/tournament_size)
+    for i in range(0, num_fights):
 
-#         #giving fighters a pass
-#         if (len(population)<tournament_size):
-#             #strongest_gladiators.append(population)
-#             #this^ was returning an array of gladiators, rather than appending each individually.
-#             #so then it would not be able to find the 'dna' attribute of a list later on.
-#             for p in population:
-#                 strongest_gladiators.append(p)
-#             return strongest_gladiators
+        #giving fighters a pass
+        if (len(population)<tournament_size):
+            #strongest_gladiators.append(population)
+            #this^ was returning an array of gladiators, rather than appending each individually.
+            #so then it would not be able to find the 'dna' attribute of a list later on.
+            for p in population:
+                strongest_gladiators.append(p)
+            return strongest_gladiators
 
-#         #print("Before fight",len(population))
+        #print("Before fight",len(population))
         
-#         #randomly choosing tournament_size fighters to fight
-#         gladiators_to_fight=rd.sample(population,tournament_size) #has issues on large tournament size
+        #randomly choosing tournament_size fighters to fight
+        gladiators_to_fight=rd.sample(population,tournament_size)
 
+        #getting the winner of the fight and adding him to winners list
+        strongest_gladiators.append(fight(gladiators_to_fight)) 
 
-#         #getting the winner of the fight and adding him to winners list
-#         strongest_gladiators.append(fight(gladiators_to_fight)) 
+        #remove combatants from population
+        for gladiator in gladiators_to_fight:
+            population.remove(gladiator)
 
-#         #remove combatants from population
-#         for gladiator in gladiators_to_fight:
-#             population.remove(gladiator)
-
-#     return strongest_gladiators
+    return strongest_gladiators
 
 
 # #The Mutation function
@@ -221,8 +211,9 @@ max_generations=100
 tenth_percentage_chance=10 # tenth a percent to mutate so 10 = 1%
 num_students = 46
 num_lecturers = 22
-base_dna=calc_lecture_allocation_values(num_students, num_lecturers)
-dna_length=len(base_dna)
+lecturer_capacties=calc_lecture_allocation_values(num_students, num_lecturers)
+student_preferences = random_student_preferences(num_students, num_lecturers)
+dna_length=len(lecturer_capacties)
 tournament_size=2
 num_original_population=100
 #################################################
@@ -230,14 +221,15 @@ generations_passed=0
 average_fitness_list=[]
 best_fitness_list=[]
 
-population= initialise_population(num_original_population,base_dna)
-
+population=initialise_population(num_original_population,lecturer_capacties, student_preferences)
+population=sorted(population, key=lambda person: person['fitness'])
 
 #the driver/evolution loop
 while(generations_passed<max_generations):
     winners=tournament_selection(tournament_size,population)
     population=winners
-
+    population=sorted(population, key=lambda person: person['fitness'])
+    
     #cross-over winners
     children=cross_over(population,dna_length,num_original_population)
 
