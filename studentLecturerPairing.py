@@ -22,6 +22,18 @@ def random_student_preferences(num_students, num_lecturers):
     del bingus # you deserve armageddon
     return student_preferences
 
+def easy_student_preferences(num_lecturers, lecturer_capacties):
+    student_preferences = []
+    for lect_index in range(len(lecturer_capacties)):
+        capacity = lecturer_capacties[lect_index]
+        for _ in range(capacity):
+            # currStudent=[lect_index]+list(set(range(num_lecturers))-set(lect_index))
+            lecturers = list(range(num_lecturers))
+            rd.shuffle(lecturers)
+            lecturers.remove(lect_index)
+            currStudent=[lect_index]+lecturers
+            student_preferences.append(currStudent)
+    return student_preferences
 
 """
 get students who are assigned to lecturer
@@ -30,11 +42,17 @@ fitness is the sum(of the index where the lectures is in student_preferences)
 0 is best
 """
 
+def update_fitness_population(population, student_preferences): # returns average fitness
+    sum_all_fitness=0
+    for allocation in population:
+        sum_all_fitness+=update_fitness(allocation, student_preferences)
+    return sum_all_fitness/len(population)
 
-def update_fitness(allocation_dict, student_preferences):
+
+def update_fitness(allocation, student_preferences):
     fitness = 0
-    for i in range(len(allocation_dict)-1): # fitness is first index.
-        student_indexes = allocation_dict["lecturer"+str(i)]["students"]
+    for i in range(len(allocation)-1): # fitness is first index.
+        student_indexes = allocation["lecturer"+str(i)]["students"]
         '''
         student_indexes is a list of students assigned to lectuere [0,5]
         accesss studnet preferences for each student
@@ -44,6 +62,7 @@ def update_fitness(allocation_dict, student_preferences):
         for index in student_indexes:
             lecturer_fitness += student_preferences[index].index(i)
         fitness += lecturer_fitness
+    allocation["fitness"]=fitness
     return fitness
 
 
@@ -58,9 +77,11 @@ def calc_lecture_allocation_values(num_students, num_lecturers):
     min_allocations = math.floor(num_students/num_lecturers)
     num_excess = num_students%num_lecturers
     static_dna_values = [min_allocations]*num_lecturers
+    return [3,1,2,3,1,2,2,2,1,4,1,1,2,2,3,1,2,1,1,4,4,3]
     for i in range(num_excess):
         static_dna_values[i]+=1
     return static_dna_values
+    
 
 # ##randomly initialising the population
 def initialise_population(pop_size, lecturer_capacties, student_preferences):
@@ -68,7 +89,6 @@ def initialise_population(pop_size, lecturer_capacties, student_preferences):
     for p in range(pop_size):
         population.append({})
         student_index_list=range(0,num_students)
-        rd.shuffle(lecturer_capacties) # shuffle what lecturers get what capatitcy
         
         for i in range(0, num_lecturers):
             lecturer="lecturer"+str(i)
@@ -79,7 +99,7 @@ def initialise_population(pop_size, lecturer_capacties, student_preferences):
             student_index_list = list(set(student_index_list)-set(curr_students))
 
         population[p].update({"fitness":""})
-        population[p].update({"fitness":update_fitness(population[p].copy(), student_preferences)})
+        update_fitness(population[p], student_preferences)
     return population # returning a list of generated populations
 
 
@@ -125,6 +145,36 @@ def tournament_selection(tournament_size,population):
 
 
 # #The Mutation function
+def mutate(allocation,mutate_chance,student_preferences):
+    for lecturerIndex in range(len(allocation)-1):
+        chance=rd.randint(0,1000)
+        if chance<mutate_chance:
+            lecturer="lecturer"+str(lecturerIndex)
+            lect_students=allocation[lecturer]["students"]
+            #choosing the unhappier student
+            students_ranking_of_lecturer=[]
+
+            for student in lect_students: #student is a number like 0, 30 etc.
+                students_ranking_of_lecturer.append(student_preferences[student].index(lecturerIndex))
+
+            #identifying the unhappiest student
+            unhappy_student_index=students_ranking_of_lecturer.index(max(students_ranking_of_lecturer))
+            unhappy_student=lect_students[unhappy_student_index]
+
+            
+            random_lecturer_index=rd.randint(0,len(allocation)-2)
+            if(random_lecturer_index==lecturerIndex):
+                random_lecturer_index=rd.randint(0,len(allocation)-2)
+
+            lecturer_swap_to=allocation["lecturer"+str(random_lecturer_index)]
+            capacity=lecturer_swap_to["capacity"]
+            student_to_swap_index=rd.randint(0,capacity-1)
+            student_to_swap=lecturer_swap_to["students"][student_to_swap_index]
+
+            #swap
+            unhappy_student=lect_students[unhappy_student_index]
+            allocation[lecturer]["students"][unhappy_student_index]=student_to_swap
+            lecturer_swap_to["students"][student_to_swap_index]=unhappy_student
 
 def swap_mutation(population,tenth_percentage_chance):
     for person in population:
@@ -190,73 +240,73 @@ def swap_mutation(population,tenth_percentage_chance):
 
 
 # #Plot the average fitness of the population versus the generations passed.
-# def generate_graph(average_fitness_list, length, title, x_axis, y_axis):
+def generate_graph(fitness_list, length, title, x_axis, y_axis, min_adjective):
   
-#     plt.xlabel(x_axis)
-#     plt.ylabel(y_axis)
-#     plt.title(title)
+    plt.xlabel(x_axis)
+    plt.ylabel(y_axis)
+    plt.title(title)
 
-#     print(f"Max average fitness value identified: {max(average_fitness_list)}")
+    print(f"Min {min_adjective} fitness value identified: {min(fitness_list)}")
 
-#     generations=list(range(0,length))
-#     #for i in range (0,len(average_fitness_list)):
-#         #plt.plot(average_fitness_list[i],i,"-",marker="D")
+    generations=list(range(0,length))
+    #for i in range (0,len(average_fitness_list)):
+        #plt.plot(average_fitness_list[i],i,"-",marker="D")
 
-#     plt.plot(average_fitness_list,generations,"-",marker="D")
-#     plt.show()
+    plt.plot(generations,fitness_list,"-",marker="D")
+    plt.show()
 
 
 ################################################# hyperparamters
-max_generations=100
-tenth_percentage_chance=10 # tenth a percent to mutate so 10 = 1%
+max_generations = 100
+tenth_percentage_chance = 10 # tenth a percent to mutate so 10 = 1%
 num_students = 46
 num_lecturers = 22
-lecturer_capacties=calc_lecture_allocation_values(num_students, num_lecturers)
-student_preferences = random_student_preferences(num_students, num_lecturers)
+lecturer_capacties = calc_lecture_allocation_values(num_students, num_lecturers)
+student_preferences = easy_student_preferences(num_lecturers, lecturer_capacties)
 dna_length=len(lecturer_capacties)
-tournament_size=2
-num_original_population=100
+tournament_size = 2
+num_original_population = 100
 #################################################
 generations_passed=0
 average_fitness_list=[]
 best_fitness_list=[]
 
 population=initialise_population(num_original_population,lecturer_capacties, student_preferences)
-population=sorted(population, key=lambda person: person['fitness'])
+population = sorted(population, key=lambda allocation: allocation['fitness'])
 
 #the driver/evolution loop
 while(generations_passed<max_generations):
-    winners=tournament_selection(tournament_size,population)
-    population=winners
-    population=sorted(population, key=lambda person: person['fitness'])
+    # winners=tournament_selection(tournament_size,population)
+    # population=winners
+    # population=sorted(population, key=lambda person: person['fitness'])
     
     #cross-over winners
-    children=cross_over(population,dna_length,num_original_population)
+    # children=cross_over(population,dna_length,num_original_population)
 
-    #print("Kids returned:",len(children))
+    # #print("Kids returned:",len(children))
     
-    ##add their kids back into population  
-    for child in children:
-        population.append(child)
+    # ##add their kids back into population  
+    # for child in children:
+    #     population.append(child)
 
     #print("Population after kids",len(population))
     #mutate population
-    population=mutation(population, chance_to_mutate)
+    for allocation in population:
+        mutate(allocation,tenth_percentage_chance,student_preferences)
 
-    average_fitness_list.append(update_fitness(population, optimal_dna))
-    population = sorted(population, key=lambda person: person['fitness'], reverse=True)
+    average_fitness_list.append(update_fitness_population(population,student_preferences))
+    population = sorted(population, key=lambda allocation: allocation['fitness'])
     best_fitness_list.append(population[0]['fitness'])
 
     ##increase generations_passed
     generations_passed+=1
 
     #if perfect fitness then break or max_generations reached break
-    
-    if(convergence(population,optimal_dna)): #if convergence has been reached, break out of the loop
-        print(f"Converged!")        
+    if(best_fitness_list[-1]==0): #if convergence has been reached, break out of the loop
+        print(f"Converged!")
         break
 
-population = sorted(population, key=lambda person: person['fitness'], reverse=True)
-print(f"generations_passed={generations_passed}\nbest_dna={population[0]['dna']}")
-generate_graph(average_fitness_list,len(average_fitness_list), "Plotting average fitness of population against Generations passed", "Average Fitness of Population","Generations Passed")
-generate_graph(best_fitness_list,len(average_fitness_list), "Plotting best fitness of population against Generations passed", "Best Fitness of Population","Generations Passed")
+population = sorted(population, key=lambda allocation: allocation['fitness'])
+print(f"generations_passed={generations_passed}\nbest_dna={population[0]['fitness']}")
+generate_graph(average_fitness_list,len(average_fitness_list), "Plotting average fitness of population against Generations passed","Generations Passed", "Average Fitness of Population", "average")
+generate_graph(best_fitness_list,len(average_fitness_list), "Plotting best fitness of population against Generations passed", "Generations Passed", "Best Fitness of Population", "")
