@@ -1,18 +1,8 @@
 import random as rd
 import matplotlib.pyplot as plt
 import math
-import operator
 
-# def calc_fitness(dna, target):
-#     score=0
-#     if dna == '0'*len(dna):
-#         return 2*len(dna)
-
-#     for i in range(0, len(dna)):
-#         if dna[i]==target[i]:
-#             score+=1
-#     return score
-
+# completely random, does not repicate real scenario at all.
 def random_student_preferences(num_students, num_lecturers):
     student_preferences = []
     for i in range(num_students):
@@ -22,6 +12,7 @@ def random_student_preferences(num_students, num_lecturers):
     del bingus # you deserve armageddon
     return student_preferences
 
+# this function creates a allocation where a perfect fitness 0 is possible
 def easy_student_preferences(num_lecturers, lecturer_capacties):
     student_preferences = []
     for lect_index in range(len(lecturer_capacties)):
@@ -48,7 +39,6 @@ def update_fitness_population(population, student_preferences): # returns averag
         sum_all_fitness+=update_fitness(allocation, student_preferences)
     return sum_all_fitness/len(population)
 
-
 def update_fitness(allocation, student_preferences):
     fitness = 0
     for i in range(len(allocation)-1): # fitness is first index.
@@ -66,13 +56,6 @@ def update_fitness(allocation, student_preferences):
     return fitness
 
 
-# def convergence(population,optimal_dna):
-#     for person in population:
-#         if(person["dna"]==optimal_dna):
-#             return 1
-
-#     return 0
-
 def calc_lecture_allocation_values(num_students, num_lecturers):
     min_allocations = math.floor(num_students/num_lecturers)
     num_excess = num_students%num_lecturers
@@ -83,7 +66,7 @@ def calc_lecture_allocation_values(num_students, num_lecturers):
     return static_dna_values
     
 
-# ##randomly initialising the population
+# randomly initialising the population
 def initialise_population(pop_size, lecturer_capacties, student_preferences):
     population=[]
     for p in range(pop_size):
@@ -102,10 +85,7 @@ def initialise_population(pop_size, lecturer_capacties, student_preferences):
         update_fitness(population[p], student_preferences)
     return population # returning a list of generated populations
 
-
-# #a "fight" is just fitness of x vs fitness of y. The gladiator with greater fitness "wins"
-# #winner moves on to the next generation. Losers?
-
+# return lowest(best) fitness.
 def fight(gladiators): #gladiators is a list of gladiators.
     currWinner = gladiators[0]
     for i in range(1, len(gladiators)):
@@ -113,7 +93,7 @@ def fight(gladiators): #gladiators is a list of gladiators.
             currWinner = gladiators[i]
     return currWinner
 
-# #returns strongest_gladiators with size population/tournament_size
+# returns strongest_gladiators(most fit) with size population/tournament_size
 def tournament_selection(tournament_size,population):
     # lectures are gladiatores for flavour
     strongest_gladiators=[]
@@ -144,7 +124,7 @@ def tournament_selection(tournament_size,population):
     return strongest_gladiators
 
 
-# #The Mutation function
+# The Mutation function
 def mutate(allocation,mutate_chance,student_preferences):
     for lecturerIndex in range(len(allocation)-1):
         chance=rd.randint(0,1000)
@@ -175,15 +155,6 @@ def mutate(allocation,mutate_chance,student_preferences):
             unhappy_student=lect_students[unhappy_student_index]
             allocation[lecturer]["students"][unhappy_student_index]=student_to_swap
             lecturer_swap_to["students"][student_to_swap_index]=unhappy_student
-
-def swap_mutation(population,tenth_percentage_chance):
-    for person in population:
-        for i in range(0,len(person["dna"])):
-            if(rd.randint(0,1000)<tenth_percentage_chance): #chance to swap mutate. (multiple mutations for one dna is possible)
-                indexToSwap = range(0, person["dna"])
-                buffer = person["dna"][i]
-                person["dna"][i] = person["dna"][indexToSwap]
-                person["dna"][indexToSwap] = buffer
 
 
 # #The Cross-over function that generates kids
@@ -239,7 +210,7 @@ def swap_mutation(population,tenth_percentage_chance):
 #     return children ## actual children of the population
 
 
-# #Plot the average fitness of the population versus the generations passed.
+# Plot the fitness of the population versus the generations passed.
 def generate_graph(fitness_list, length, title, x_axis, y_axis, min_adjective):
   
     plt.xlabel(x_axis)
