@@ -157,12 +157,60 @@ def mutate(allocation,mutate_chance,student_preferences):
             lecturer_swap_to["students"][student_to_swap_index]=unhappy_student
 
 
+def cross_over_two_parents(allocation1, allocation2, num_lectures, num_students):
+    keys = list(allocation1.keys())
+    keys.remove("fitness")
+    cross_over_index = rd.randint(0, num_lectures-1)
+    slice_1_keys = keys[0:cross_over_index]
+    slice_2_keys = keys[cross_over_index:num_lectures]
+
+    alloc_1_first = dict((k, allocation1[k]) for k in slice_1_keys)
+    alloc_1_second = dict((k, allocation1[k]) for k in slice_2_keys)
+    alloc_2_first = dict((k, allocation2[k]) for k in slice_1_keys)
+    alloc_2_second = dict((k, allocation2[k]) for k in slice_2_keys)
+
+    child_1 = confict_resolution({**alloc_1_first, **alloc_2_second}, keys, num_students)
+    child_2 = confict_resolution({**alloc_2_first, **alloc_1_second}, keys, num_students)
+
+
+def confict_resolution(child, keys, num_students):
+    # get an array of all allocated students
+    # students_allocated = [list((l, child[l]["students"])[1]) for l in keys]
+    # read this line, you filty casual...
+    students_allocated = [item for sublist in [list((l, child[l]["students"])[1]) for l in keys] for item in sublist]
+    # conflicts are duplicates students allocated in child
+    # conflicts = list()
+    # for i in range(len(students_allocated)):
+    #     conflicts.append([])
+    # for i in range(len(students_allocated)):
+    #     for num in students_allocated[i]:
+    #         # flat_list = [item for sublist in students_allocated for item in sublist]
+    #         # if(flat_list.count(num) > 1):
+    #         #     conflicts[i].extend(num)
+
+    conflict_set = set([student for student in students_allocated if students_allocated.count(student) > 1])
+    # missing are students not allocated
+    conflict_dict = {}
+    for num in conflict_set:
+        lecturer_index_list = []
+        for lecturer in keys:
+            if(child[lecturer]["students"].count(num) > 0):
+                lecturer_index_list.append(lecturer)
+        conflict_dict.update({str(num):lecturer_index_list})
+
+
+    missing = set(range(num_students))-set(students_allocated)
+    # print(f"len conflits:{len(conflicts)}\nlen missing:{len(missing)}")
+    
+    
+    print("floppa")
+
 # #The Cross-over function that generates kids
 # def cross_over_two_parents(parent1, parent2, dna_length, optimal_dna):
     
 #     dna_parent_one=parent1['dna']
 #     dna_parent_two=parent2['dna']
-#     cross_over_index = rd.randint(0, dna_length-1)
+#
 #     slice_one = slice(cross_over_index)
 #     slice_two = slice(cross_over_index, dna_length)
 
@@ -184,30 +232,30 @@ def mutate(allocation,mutate_chance,student_preferences):
 #     return children
 
 # # The Cross-Over function that acts as a wrapper for the actual cross_over functionality
-# def cross_over(population, dna_length, original_population_size):
-#     children=[]
-#     needed_kids=original_population_size-len(population)
-#     passes=0
-#     while len(children) < needed_kids:
-#         # if passes%2==0: #alternate between order by fitness and randomness
-#         #     #population = sorted(population, key=lambda person: person["fitness"], reverse=True) #sort by fitness
-#         #     population.sort(key=lambda person: person["fitness"], reverse=True)
-#         #     passes+=1
-#         # else:
-#         #     rd.shuffle(population) #randomly re-order list
-#         #     passes+=1
+def cross_over(population, original_population_size, num_lecturers, num_students):
+    children=[]
+    needed_kids=original_population_size-len(population)
+    passes=0
+    while len(children) < needed_kids:
+        # if passes%2==0: #alternate between order by fitness and randomness
+        #     #population = sorted(population, key=lambda person: person["fitness"], reverse=True) #sort by fitness
+        #     population.sort(key=lambda person: person["fitness"], reverse=True)
+        #     passes+=1
+        # else:
+        #     rd.shuffle(population) #randomly re-order list
+        #     passes+=1
 
-#         rd.shuffle(population)
+        rd.shuffle(population)
         
-#         for i in range(1, len(population), 2): #1,0 & 3 2 ...... 1,0 & 3,2 & 5,4
-#             #children.append( cross_over_two_parents(list(population[i], population[i+1]), dna_length) )
-#             #print(f"index1 is {i-1} and index2 is {i}")
-#             crossed_over=cross_over_two_parents(population[i-1], population[i], dna_length, optimal_dna)
-#             children.extend(crossed_over)
-#             if len(children) >= needed_kids:
-#                 return children
+        for i in range(1, len(population), 2): #1,0 & 3 2 ...... 1,0 & 3,2 & 5,4
+            #children.append( cross_over_two_parents(list(population[i], population[i+1]), dna_length) )
+            #print(f"index1 is {i-1} and index2 is {i}")
+            crossed_over=cross_over_two_parents(population[i-1], population[i], num_lecturers, num_students)
+            children.extend(crossed_over)
+            if len(children) >= needed_kids:
+                return children
 
-#     return children ## actual children of the population
+    return children ## actual children of the population
 
 
 # Plot the fitness of the population versus the generations passed.
@@ -247,12 +295,12 @@ population = sorted(population, key=lambda allocation: allocation['fitness'])
 
 #the driver/evolution loop
 while(generations_passed<max_generations):
-    # winners=tournament_selection(tournament_size,population)
-    # population=winners
-    # population=sorted(population, key=lambda person: person['fitness'])
-    
+    winners=tournament_selection(tournament_size,population)
+    population=winners
+    population=sorted(population, key=lambda person: person['fitness'])
+
     #cross-over winners
-    # children=cross_over(population,dna_length,num_original_population)
+    children=cross_over(population, num_original_population, num_lecturers, num_students)
 
     # #print("Kids returned:",len(children))
     
