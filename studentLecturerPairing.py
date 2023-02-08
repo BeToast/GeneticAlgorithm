@@ -126,60 +126,42 @@ def tournament_selection(tournament_size,population):
 
 
 # The Mutation function
-def mutate(allocation,mutate_chance,student_preferences):
-    for lecturerIndex in range(len(allocation)-1):
-        chance=rd.randint(0,1000)
-        if chance<mutate_chance:
-            ###################### start debug
-            keys = list(allocation.keys())
-            if "fitness" in keys: keys.remove("fitness")
-            students_allocated = [item for sublist in [list((l, child[l]["students"])[1]) for l in keys] for item in sublist]
-            missing = set(range(num_students))-set(students_allocated)
-            conflict_set = set([student for student in students_allocated if students_allocated.count(student) > 1])
-            if(len(missing) + len(conflict_set) != 0):
-                raise Exception("bingus moment")
-            ###################### end debug
+def mutate_population(population,mutate_chance,student_preferences):
+    for allo_index in range(len(population)-1):
+        allocation = population[allo_index]
 
-            lecturer="lecturer"+str(lecturerIndex)
-            lect_students=allocation[lecturer]["students"]
-            #choosing the unhappier student
-            students_ranking_of_lecturer=[]
+        for lecturerIndex in range(len(allocation)-1):
+            if rd.randint(0,1000)<mutate_chance:
+                lecturer="lecturer"+str(lecturerIndex)
+                lect_students=allocation[lecturer]["students"]
+                #choosing the unhappier student
+                students_ranking_of_lecturer=[]
 
-            for student in lect_students: #student is a number like 0, 30 etc.
-                students_ranking_of_lecturer.append(student_preferences[student].index(lecturerIndex))
+                for student in lect_students: #student is a number like 0, 30 etc.
+                    students_ranking_of_lecturer.append(student_preferences[student].index(lecturerIndex))
 
-            #identifying the unhappiest student
-            unhappy_student_index=students_ranking_of_lecturer.index(max(students_ranking_of_lecturer))
-            unhappy_student=lect_students[unhappy_student_index]
+                #identifying the unhappiest student
+                unhappy_student_index=students_ranking_of_lecturer.index(max(students_ranking_of_lecturer))
+                unhappy_student=lect_students[unhappy_student_index]
 
-            
-            random_lecturer_index=rd.randint(0,len(allocation)-2)
-            while random_lecturer_index==lecturerIndex:
                 random_lecturer_index=rd.randint(0,len(allocation)-2)
+                while random_lecturer_index==lecturerIndex:
+                    random_lecturer_index=rd.randint(0,len(allocation)-2)
+                #index of student to swap in the random lecturer
+                student_in_random_lecturer_index = rd.randint(0,allocation["lecturer"+str(random_lecturer_index)]["capacity"]-1)
 
-            lecturer_swap_to=allocation["lecturer"+str(random_lecturer_index)]
-            capacity=lecturer_swap_to["capacity"]
-            student_to_swap_index=rd.randint(0,capacity-1)
-            student_to_swap=lecturer_swap_to["students"][student_to_swap_index]
+                allocation_debug=allocation
+                # do the swap
+                allocation[lecturer]["students"][unhappy_student_index] = allocation["lecturer"+str(random_lecturer_index)]["students"][student_in_random_lecturer_index]
+                allocation["lecturer"+str(random_lecturer_index)]["students"][student_in_random_lecturer_index] = unhappy_student
 
-            #swap
-            unhappy_student=lect_students[unhappy_student_index]
-            allocation[lecturer]["students"][unhappy_student_index]=student_to_swap
-            allocation["lecturer"+str(random_lecturer_index)]["students"][student_to_swap_index]=unhappy_student
-            
-            ##### debug #####
-            keys = list(allocation.keys())
-            if "fitness" in keys: keys.remove("fitness")
-            students_allocated = [item for sublist in [list((l, child[l]["students"])[1]) for l in keys] for item in sublist]
-            missing = set(range(num_students))-set(students_allocated)
-            conflict_set = set([student for student in students_allocated if students_allocated.count(student) > 1])
-            if(len(missing) + len(conflict_set) != 0):
-                raise Exception("bingus moment")
-
+        population[allo_index] = allocation
+    return population
 
 def cross_over_two_parents(allocation1, allocation2, num_lectures, num_students, student_preferences):
     keys = list(allocation1.keys())
     keys.remove("fitness")
+
     cross_over_index = rd.randint(0, num_lectures-1)
     slice_1_keys = keys[0:cross_over_index]
     slice_2_keys = keys[cross_over_index:num_lectures]
@@ -195,7 +177,7 @@ def cross_over_two_parents(allocation1, allocation2, num_lectures, num_students,
     return [child_1, child_2]
 
 
-def confict_resolution(child, keys, num_students, student_preferences):
+def confict_resolution(child, keys, num_students, student_preferences):\
     # get an array of all allocated students
     # read this line, you filty casual...
     students_allocated = [item for sublist in [list((l, child[l]["students"])[1]) for l in keys] for item in sublist]
@@ -219,7 +201,7 @@ def confict_resolution(child, keys, num_students, student_preferences):
         curr_preferences = student_preferences[num]
         lectuer_1_rating = curr_preferences.index(lects_int[0])
         lectuer_2_rating = curr_preferences.index(lects_int[1])
-        if(lectuer_1_rating>lectuer_2_rating):
+        if(lectuer_1_rating<lectuer_2_rating):
             #conflict student prefers first lecturer
             curr_students = child[lects_str[1]]["students"] # so replace second lecturer with a missing student
             curr_students[curr_students.index(num)] = missing.pop() # get random student replacement
@@ -229,12 +211,7 @@ def confict_resolution(child, keys, num_students, student_preferences):
             curr_students = child[lects_str[0]]["students"] # so replace first lecturer with a missing student
             curr_students[curr_students.index(num)] = missing.pop() # get random student replacement
             child[lects_str[0]].update({"students": curr_students}) # update values
-    # #### code to ensure no conflicts and missing both prints should be 0 ####
-    # students_allocated = [item for sublist in [list((l, child[l]["students"])[1]) for l in keys] for item in sublist]
-    # # missing
-    # print(len(set(range(num_students))-set(students_allocated))) 
-    # # conflicts
-    # print(len(set([student for student in students_allocated if students_allocated.count(student) > 1])))
+
     return child
 
 # # The Cross-Over function that acts as a wrapper for the actual cross_over functionality
@@ -243,13 +220,6 @@ def cross_over(population, original_population_size, num_lecturers, num_students
     needed_kids=original_population_size-len(population)
     passes=0
     while len(children) < needed_kids:
-        # if passes%2==0: #alternate between order by fitness and randomness
-        #     #population = sorted(population, key=lambda person: person["fitness"], reverse=True) #sort by fitness
-        #     population.sort(key=lambda person: person["fitness"], reverse=True)
-        #     passes+=1
-        # else:
-        #     rd.shuffle(population) #randomly re-order list
-        #     passes+=1
 
         rd.shuffle(population)
         
@@ -307,6 +277,7 @@ while(generations_passed<max_generations):
     population=sorted(population, key=lambda person: person['fitness'])
 
     #cross-over winners
+    # print("corss-over start")
     children=cross_over(population, num_original_population, num_lecturers, num_students, student_preferences)
 
     # #print("Kids returned:",len(children))
@@ -315,10 +286,10 @@ while(generations_passed<max_generations):
     for child in children:
         population.append(child)
 
-    print("Population after kids",len(population))
-    #mutate population
-    for allocation in population:
-        mutate(allocation,tenth_percentage_chance,student_preferences)
+    # print("Population after kids",len(population))
+    # mutate population
+    # print("start mutation")
+    # population = mutate_population(population,tenth_percentage_chance,student_preferences)
 
     average_fitness_list.append(update_fitness_population(population,student_preferences))
     population = sorted(population, key=lambda allocation: allocation['fitness'])
