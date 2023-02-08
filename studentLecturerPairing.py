@@ -1,6 +1,7 @@
 import random as rd
 import matplotlib.pyplot as plt
 import math
+from re import findall
 
 # completely random, does not repicate real scenario at all.
 def random_student_preferences(num_students, num_lecturers):
@@ -129,6 +130,16 @@ def mutate(allocation,mutate_chance,student_preferences):
     for lecturerIndex in range(len(allocation)-1):
         chance=rd.randint(0,1000)
         if chance<mutate_chance:
+            ###################### start debug
+            keys = list(allocation.keys())
+            if "fitness" in keys: keys.remove("fitness")
+            students_allocated = [item for sublist in [list((l, child[l]["students"])[1]) for l in keys] for item in sublist]
+            missing = set(range(num_students))-set(students_allocated)
+            conflict_set = set([student for student in students_allocated if students_allocated.count(student) > 1])
+            if(len(missing) + len(conflict_set) != 0):
+                raise Exception("bingus moment")
+            ###################### end debug
+
             lecturer="lecturer"+str(lecturerIndex)
             lect_students=allocation[lecturer]["students"]
             #choosing the unhappier student
@@ -143,7 +154,7 @@ def mutate(allocation,mutate_chance,student_preferences):
 
             
             random_lecturer_index=rd.randint(0,len(allocation)-2)
-            if(random_lecturer_index==lecturerIndex):
+            while random_lecturer_index==lecturerIndex:
                 random_lecturer_index=rd.randint(0,len(allocation)-2)
 
             lecturer_swap_to=allocation["lecturer"+str(random_lecturer_index)]
@@ -154,10 +165,19 @@ def mutate(allocation,mutate_chance,student_preferences):
             #swap
             unhappy_student=lect_students[unhappy_student_index]
             allocation[lecturer]["students"][unhappy_student_index]=student_to_swap
-            lecturer_swap_to["students"][student_to_swap_index]=unhappy_student
+            allocation["lecturer"+str(random_lecturer_index)]["students"][student_to_swap_index]=unhappy_student
+            
+            ##### debug #####
+            keys = list(allocation.keys())
+            if "fitness" in keys: keys.remove("fitness")
+            students_allocated = [item for sublist in [list((l, child[l]["students"])[1]) for l in keys] for item in sublist]
+            missing = set(range(num_students))-set(students_allocated)
+            conflict_set = set([student for student in students_allocated if students_allocated.count(student) > 1])
+            if(len(missing) + len(conflict_set) != 0):
+                raise Exception("bingus moment")
 
 
-def cross_over_two_parents(allocation1, allocation2, num_lectures, num_students):
+def cross_over_two_parents(allocation1, allocation2, num_lectures, num_students, student_preferences):
     keys = list(allocation1.keys())
     keys.remove("fitness")
     cross_over_index = rd.randint(0, num_lectures-1)
@@ -169,27 +189,21 @@ def cross_over_two_parents(allocation1, allocation2, num_lectures, num_students)
     alloc_2_first = dict((k, allocation2[k]) for k in slice_1_keys)
     alloc_2_second = dict((k, allocation2[k]) for k in slice_2_keys)
 
-    child_1 = confict_resolution({**alloc_1_first, **alloc_2_second}, keys, num_students)
-    child_2 = confict_resolution({**alloc_2_first, **alloc_1_second}, keys, num_students)
+    child_1 = confict_resolution({**alloc_1_first, **alloc_2_second}, keys, num_students, student_preferences)
+    child_2 = confict_resolution({**alloc_2_first, **alloc_1_second}, keys, num_students, student_preferences)
+
+    return [child_1, child_2]
 
 
-def confict_resolution(child, keys, num_students):
+def confict_resolution(child, keys, num_students, student_preferences):
     # get an array of all allocated students
-    # students_allocated = [list((l, child[l]["students"])[1]) for l in keys]
     # read this line, you filty casual...
     students_allocated = [item for sublist in [list((l, child[l]["students"])[1]) for l in keys] for item in sublist]
-    # conflicts are duplicates students allocated in child
-    # conflicts = list()
-    # for i in range(len(students_allocated)):
-    #     conflicts.append([])
-    # for i in range(len(students_allocated)):
-    #     for num in students_allocated[i]:
-    #         # flat_list = [item for sublist in students_allocated for item in sublist]
-    #         # if(flat_list.count(num) > 1):
-    #         #     conflicts[i].extend(num)
-
-    conflict_set = set([student for student in students_allocated if students_allocated.count(student) > 1])
     # missing are students not allocated
+    missing = set(range(num_students))-set(students_allocated)
+    # where a student is double allocated
+    conflict_set = set([student for student in students_allocated if students_allocated.count(student) > 1])
+    # dict where each entry is student number and both lecturer keys it occurs in. ex. {{'5' : [lecturer4, lecturer19]}}
     conflict_dict = {}
     for num in conflict_set:
         lecturer_index_list = []
@@ -198,41 +212,33 @@ def confict_resolution(child, keys, num_students):
                 lecturer_index_list.append(lecturer)
         conflict_dict.update({str(num):lecturer_index_list})
 
-
-    missing = set(range(num_students))-set(students_allocated)
-    # print(f"len conflits:{len(conflicts)}\nlen missing:{len(missing)}")
-    
-    
-    print("floppa")
-
-# #The Cross-over function that generates kids
-# def cross_over_two_parents(parent1, parent2, dna_length, optimal_dna):
-    
-#     dna_parent_one=parent1['dna']
-#     dna_parent_two=parent2['dna']
-#
-#     slice_one = slice(cross_over_index)
-#     slice_two = slice(cross_over_index, dna_length)
-
-#     children = []
-
-#     ###NOTE: @Blake, shouldn't each Child be a gladiator object?. They just can't be strings. I've made the change
-
-#     #children.append(dna_parent_one[slice_one]+dna_parent_two[slice_two])
-#     #children.append(dna_parent_two[slice_one]+dna_parent_one[slice_two])
-#     dna_child1=str(dna_parent_one[slice_one])+str(dna_parent_two[slice_two])
-#     dna_child2=str(dna_parent_two[slice_one])+str(dna_parent_one[slice_two])
-    
-#     child1={"dna":dna_child1,"fitness":calc_fitness(dna_child1, optimal_dna),"losses":0, "wins":0}
-#     child2={"dna":dna_child2,"fitness":calc_fitness(dna_child2, optimal_dna),"losses":0, "wins":0}
-
-#     children.append(child1)
-#     children.append(child2)
-    
-#     return children
+    # determine which lecturer the conflict student prefers for each conflict
+    for num in conflict_set:
+        lects_str = conflict_dict[str(num)]
+        lects_int = [int(findall("\d+",lects_str[0])[0]), int(findall("\d+",lects_str[1])[0])]
+        curr_preferences = student_preferences[num]
+        lectuer_1_rating = curr_preferences.index(lects_int[0])
+        lectuer_2_rating = curr_preferences.index(lects_int[1])
+        if(lectuer_1_rating>lectuer_2_rating):
+            #conflict student prefers first lecturer
+            curr_students = child[lects_str[1]]["students"] # so replace second lecturer with a missing student
+            curr_students[curr_students.index(num)] = missing.pop() # get random student replacement
+            child[lects_str[1]].update({"students": curr_students}) # update values
+        else:
+            #conflict student prefers second lecturer
+            curr_students = child[lects_str[0]]["students"] # so replace first lecturer with a missing student
+            curr_students[curr_students.index(num)] = missing.pop() # get random student replacement
+            child[lects_str[0]].update({"students": curr_students}) # update values
+    # #### code to ensure no conflicts and missing both prints should be 0 ####
+    # students_allocated = [item for sublist in [list((l, child[l]["students"])[1]) for l in keys] for item in sublist]
+    # # missing
+    # print(len(set(range(num_students))-set(students_allocated))) 
+    # # conflicts
+    # print(len(set([student for student in students_allocated if students_allocated.count(student) > 1])))
+    return child
 
 # # The Cross-Over function that acts as a wrapper for the actual cross_over functionality
-def cross_over(population, original_population_size, num_lecturers, num_students):
+def cross_over(population, original_population_size, num_lecturers, num_students, student_preferences):
     children=[]
     needed_kids=original_population_size-len(population)
     passes=0
@@ -250,7 +256,7 @@ def cross_over(population, original_population_size, num_lecturers, num_students
         for i in range(1, len(population), 2): #1,0 & 3 2 ...... 1,0 & 3,2 & 5,4
             #children.append( cross_over_two_parents(list(population[i], population[i+1]), dna_length) )
             #print(f"index1 is {i-1} and index2 is {i}")
-            crossed_over=cross_over_two_parents(population[i-1], population[i], num_lecturers, num_students)
+            crossed_over=cross_over_two_parents(population[i-1], population[i], num_lecturers, num_students, student_preferences)
             children.extend(crossed_over)
             if len(children) >= needed_kids:
                 return children
@@ -295,20 +301,21 @@ population = sorted(population, key=lambda allocation: allocation['fitness'])
 
 #the driver/evolution loop
 while(generations_passed<max_generations):
+    print(f"start generation {generations_passed}")
     winners=tournament_selection(tournament_size,population)
     population=winners
     population=sorted(population, key=lambda person: person['fitness'])
 
     #cross-over winners
-    children=cross_over(population, num_original_population, num_lecturers, num_students)
+    children=cross_over(population, num_original_population, num_lecturers, num_students, student_preferences)
 
     # #print("Kids returned:",len(children))
     
-    # ##add their kids back into population  
-    # for child in children:
-    #     population.append(child)
+    # add their kids back into population  
+    for child in children:
+        population.append(child)
 
-    #print("Population after kids",len(population))
+    print("Population after kids",len(population))
     #mutate population
     for allocation in population:
         mutate(allocation,tenth_percentage_chance,student_preferences)
