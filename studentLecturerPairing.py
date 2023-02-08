@@ -3,6 +3,19 @@ import matplotlib.pyplot as plt
 import math
 from re import findall
 
+def quality_check(population) -> bool:
+    fine = True
+    for allocation in population:
+        keys = list(allocation.keys())
+        if "fitness" in keys: keys.remove("fitness")
+        students_allocated = [item for sublist in [list((l, allocation[l]["students"])[1]) for l in keys] for item in sublist]
+        missing = set(range(num_students))-set(students_allocated)
+        conflict_set = set([student for student in students_allocated if students_allocated.count(student) > 1])
+        if(len(set(students_allocated))!=46): 
+            fine = False
+    return fine
+
+
 # completely random, does not repicate real scenario at all.
 def random_student_preferences(num_students, num_lecturers):
     student_preferences = []
@@ -159,6 +172,8 @@ def mutate_population(population,mutate_chance,student_preferences):
     return population
 
 def cross_over_two_parents(allocation1, allocation2, num_lectures, num_students, student_preferences):
+    temp=quality_check(population)
+
     keys = list(allocation1.keys())
     keys.remove("fitness")
 
@@ -171,13 +186,27 @@ def cross_over_two_parents(allocation1, allocation2, num_lectures, num_students,
     alloc_2_first = dict((k, allocation2[k]) for k in slice_1_keys)
     alloc_2_second = dict((k, allocation2[k]) for k in slice_2_keys)
 
-    child_1 = confict_resolution({**alloc_1_first, **alloc_2_second}, keys, num_students, student_preferences)
-    child_2 = confict_resolution({**alloc_2_first, **alloc_1_second}, keys, num_students, student_preferences)
+    temp=quality_check(population)
+  
+    # child_one = {**alloc_1_first, **alloc_2_second}
+    # child_two = {**alloc_2_first, **alloc_1_second}
+    child_one = alloc_1_first.copy()
+    child_one.update(alloc_2_second)
+
+    child_two = alloc_2_first.copy()
+    child_two.update(alloc_1_second)
+
+    temp=quality_check(population)
+
+    child_1 = confict_resolution(child_one, keys, num_students, student_preferences)
+    child_2 = confict_resolution(child_two, keys, num_students, student_preferences)
 
     return [child_1, child_2]
 
 
-def confict_resolution(child, keys, num_students, student_preferences):\
+def confict_resolution(child, keys, num_students, student_preferences):
+    temp=quality_check(population)
+    debug_child = child
     # get an array of all allocated students
     # read this line, you filty casual...
     students_allocated = [item for sublist in [list((l, child[l]["students"])[1]) for l in keys] for item in sublist]
@@ -195,6 +224,7 @@ def confict_resolution(child, keys, num_students, student_preferences):\
         conflict_dict.update({str(num):lecturer_index_list})
 
     # determine which lecturer the conflict student prefers for each conflict
+    temp=quality_check(population)
     for num in conflict_set:
         lects_str = conflict_dict[str(num)]
         lects_int = [int(findall("\d+",lects_str[0])[0]), int(findall("\d+",lects_str[1])[0])]
@@ -268,6 +298,7 @@ best_fitness_list=[]
 
 population=initialise_population(num_original_population,lecturer_capacties, student_preferences)
 population = sorted(population, key=lambda allocation: allocation['fitness'])
+temp=quality_check(population)
 
 #the driver/evolution loop
 while(generations_passed<max_generations):
@@ -275,25 +306,30 @@ while(generations_passed<max_generations):
     winners=tournament_selection(tournament_size,population)
     population=winners
     population=sorted(population, key=lambda person: person['fitness'])
+    temp=quality_check(population)
 
     #cross-over winners
     # print("corss-over start")
     children=cross_over(population, num_original_population, num_lecturers, num_students, student_preferences)
+    quality_check(population)
 
     # #print("Kids returned:",len(children))
     
     # add their kids back into population  
     for child in children:
         population.append(child)
+    temp=quality_check(population)
 
     # print("Population after kids",len(population))
     # mutate population
     # print("start mutation")
-    # population = mutate_population(population,tenth_percentage_chance,student_preferences)
+    population = mutate_population(population,tenth_percentage_chance,student_preferences)
+    temp=quality_check(population)
 
     average_fitness_list.append(update_fitness_population(population,student_preferences))
     population = sorted(population, key=lambda allocation: allocation['fitness'])
     best_fitness_list.append(population[0]['fitness'])
+    temp=quality_check(population)
 
     ##increase generations_passed
     generations_passed+=1
