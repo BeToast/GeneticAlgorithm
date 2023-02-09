@@ -1,7 +1,9 @@
 import random as rd
-#import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt
 import math
 from re import findall
+from copy import deepcopy
+
 
 #defining a function that returns the average preferred lecturer that students have been assigned by the algorithm, per allocation.
 
@@ -40,6 +42,7 @@ def quality_check(population) -> bool:
         missing = set(range(num_students))-set(students_allocated)
         conflict_set = set([student for student in students_allocated if students_allocated.count(student) > 1])
         if(len(set(students_allocated))!=46): 
+            raise Exception("its broken")
             fine = False
     return fine
 
@@ -209,31 +212,33 @@ def cross_over_two_parents(allocation1, allocation2, num_lectures, num_students,
     slice_1_keys = keys[0:cross_over_index]
     slice_2_keys = keys[cross_over_index:num_lectures]
 
-    alloc_1_first = dict((k, allocation1[k]) for k in slice_1_keys)
-    alloc_1_second = dict((k, allocation1[k]) for k in slice_2_keys)
-    alloc_2_first = dict((k, allocation2[k]) for k in slice_1_keys)
-    alloc_2_second = dict((k, allocation2[k]) for k in slice_2_keys)
+    alloc_1_first = deepcopy(dict((k, allocation1[k]) for k in slice_1_keys))
+    alloc_1_second = deepcopy(dict((k, allocation1[k]) for k in slice_2_keys))
+    alloc_2_first = deepcopy(dict((k, allocation2[k]) for k in slice_1_keys))
+    alloc_2_second = deepcopy(dict((k, allocation2[k]) for k in slice_2_keys))
 
     temp=quality_check(population)
   
-    # child_one = {**alloc_1_first, **alloc_2_second}
-    # child_two = {**alloc_2_first, **alloc_1_second}
-    child_one = alloc_1_first.copy()
-    child_one.update(alloc_2_second)
+    child_one = {**alloc_1_first, **alloc_2_second}
+    child_two = {**alloc_2_first, **alloc_1_second}
+    # child_one = alloc_1_first.copy()
+    # child_one.update(alloc_2_second)
 
-    child_two = alloc_2_first.copy()
-    child_two.update(alloc_1_second)
+    # child_two = alloc_2_first.copy()
+    # child_two.update(alloc_1_second)
 
     temp=quality_check(population)
 
     child_1 = confict_resolution(child_one, keys, num_students, student_preferences)
     child_2 = confict_resolution(child_two, keys, num_students, student_preferences)
 
+    temp2=quality_check(population)
+
     return [child_1, child_2]
 
 
 def confict_resolution(child, keys, num_students, student_preferences):
-    temp=quality_check(population)
+    # temp=quality_check(population)
     debug_child = child
     # get an array of all allocated students
     # read this line, you filty casual...
@@ -252,7 +257,7 @@ def confict_resolution(child, keys, num_students, student_preferences):
         conflict_dict.update({str(num):lecturer_index_list})
 
     # determine which lecturer the conflict student prefers for each conflict
-    temp=quality_check(population)
+    # temp=quality_check(population)
     for num in conflict_set:
         lects_str = conflict_dict[str(num)]
         lects_int = [int(findall("\d+",lects_str[0])[0]), int(findall("\d+",lects_str[1])[0])]
@@ -311,7 +316,7 @@ def generate_graph(fitness_list, length, title, x_axis, y_axis, min_adjective):
 
 ################################################# hyperparamters
 max_generations = 100
-tenth_percentage_chance = 10 # tenth a percent to mutate so 10 = 1%
+tenth_percentage_chance = 0 # tenth a percent to mutate so 10 = 1%
 num_students = 46
 num_lecturers = 22
 lecturer_capacties = calc_lecture_allocation_values(num_students, num_lecturers)
