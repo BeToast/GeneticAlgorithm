@@ -1,7 +1,35 @@
 import random as rd
-import matplotlib.pyplot as plt
+#import matplotlib.pyplot as plt
 import math
 from re import findall
+
+#defining a function that returns the average preferred lecturer that students have been assigned by the algorithm, per allocation.
+
+def get_average_allocation(allocation,student_preferences):
+
+    preferences=0
+    #keeping track of where the lecturer was placed in the allocated student's preferences
+    lect_preferences=[]
+    
+    #print("Getting average allocation preference")
+    #loop through keys(lecturers), get lecturer's students and check where the lecturer placed in each the student's preference list.
+    lecturers_list=list(allocation.keys())
+    #print(lecturers_list)
+    for i in range(len(lecturers_list)-1): #the -1 is to account for the presence of the "fitness" key in the allocation dict
+        lecturer_index=str(lecturers_list[i]).split("lecturer")[1]
+        students_allocated= allocation[lecturers_list[i]]["students"]
+        #print("Students allocated for lecturer "+str(lecturer_index)+" are: ",students_allocated)
+
+        if int(lecturer_index)<=9:
+            lecturer_index="0"+str(lecturer_index)
+
+        #loop through the students allocated to the lecturer
+        for student in students_allocated:
+            #print("Lecturer being considered is: ",lecturer_index)
+            preferences+=student_preferences[student].index(int(lecturer_index))
+
+        average=preferences/len(student_preferences)
+    print("Average preference allocated to students in this allocation",average)
 
 def quality_check(population) -> bool:
     fine = True
@@ -46,7 +74,7 @@ find index of lecturer in student_preferences[stduent]
 fitness is the sum(of the index where the lectures is in student_preferences)
 0 is best
 """
-
+#function that returns the average fitness of the population (fitness of all the allocations summed/number of allocations)
 def update_fitness_population(population, student_preferences): # returns average fitness
     sum_all_fitness=0
     for allocation in population:
@@ -74,7 +102,7 @@ def calc_lecture_allocation_values(num_students, num_lecturers):
     min_allocations = math.floor(num_students/num_lecturers)
     num_excess = num_students%num_lecturers
     static_dna_values = [min_allocations]*num_lecturers
-    return [3,1,2,3,1,2,2,2,1,4,1,1,2,2,3,1,2,1,1,4,4,3]
+    return [3,1,2,3,1,2,2,2,1,4,1,1,2,2,3,1,2,1,1,4,4,3] #hard-coded in values from the excel spreadsheet.
     for i in range(num_excess):
         static_dna_values[i]+=1
     return static_dna_values
@@ -300,6 +328,8 @@ population=initialise_population(num_original_population,lecturer_capacties, stu
 population = sorted(population, key=lambda allocation: allocation['fitness'])
 temp=quality_check(population)
 
+get_average_allocation(population[0],student_preferences)
+
 #the driver/evolution loop
 while(generations_passed<max_generations):
     print(f"start generation {generations_passed}")
@@ -309,7 +339,7 @@ while(generations_passed<max_generations):
     temp=quality_check(population)
 
     #cross-over winners
-    # print("corss-over start")
+    # print("cross-over start")
     children=cross_over(population, num_original_population, num_lecturers, num_students, student_preferences)
     quality_check(population)
 
