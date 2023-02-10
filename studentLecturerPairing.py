@@ -10,7 +10,7 @@ def get_average_allocation(allocation,student_preferences):
     preferences=0
     #keeping track of where the lecturer was placed in the allocated student's preferences
     lect_preferences=[]
-    
+
     #print("Getting average allocation preference")
     #loop through keys(lecturers), get lecturer's students and check where the lecturer placed in each the student's preference list.
     lecturers_list=list(allocation.keys())
@@ -168,46 +168,72 @@ def tournament_selection(tournament_size,population):
 
 # The Mutation function
 def mutate_population(population,mutate_chance,student_preferences):
+
+    is_allocation_valid_before_mutation=quality_check(population)
+    #for every allocation in the population
     for allo_index in range(len(population)-1):
         allocation = population[allo_index]
 
+        #go through all lectures in an allocation, get their students
         for lecturerIndex in range(len(allocation)-1):
+
+            #mutation has a (mutate_chance/1000)*100 chance of happening 
             if rd.randint(0,1000)<mutate_chance:
                 lecturer="lecturer"+str(lecturerIndex)
+
+                #obtaining the students allocated to the lecturer who is being mutated.
                 lect_students=allocation[lecturer]["students"]
+
                 #choosing the unhappier student
-                students_ranking_of_lecturer=[]
+                students_ranking_of_lecturer=[] #[student1,student5]
 
                 for student in lect_students: #student is a number like 0, 30 etc.
+
+                    #getting an integer that represents where the student ranked this lecturer.
+                    # lets say student 1 ranked this lecturer 7th and student 5 ranked this lecturer 10th
                     students_ranking_of_lecturer.append(student_preferences[student].index(lecturerIndex))
+                    #students_ranking_of_lecturer=[7,10]
+                    
 
                 #identifying the unhappiest student
+                #max value of students_ranking_of_lecturer is 10, which is in index 1 (2nd student in the allocated student list)
                 unhappy_student_index=students_ranking_of_lecturer.index(max(students_ranking_of_lecturer))
+
+                #acts as the temp variable in the swap
                 unhappy_student=lect_students[unhappy_student_index]
 
+                #choose a random lecturer WITHIN this allocation to swap the unhappy student with
                 random_lecturer_index=rd.randint(0,len(allocation)-2)
                 while random_lecturer_index==lecturerIndex:
                     random_lecturer_index=rd.randint(0,len(allocation)-2)
-                #index of student to swap in the random lecturer
+
+                #index of a random student to swap in the random lecturer
                 student_in_random_lecturer_index = rd.randint(0,allocation["lecturer"+str(random_lecturer_index)]["capacity"]-1)
 
                 allocation_debug=allocation
+
                 # do the swap
                 allocation[lecturer]["students"][unhappy_student_index] = allocation["lecturer"+str(random_lecturer_index)]["students"][student_in_random_lecturer_index]
                 allocation["lecturer"+str(random_lecturer_index)]["students"][student_in_random_lecturer_index] = unhappy_student
 
         population[allo_index] = allocation
+
+    is_allocation_valid_after_mutation=quality_check(population)
     return population
 
 def cross_over_two_parents(allocation1, allocation2, num_lectures, num_students, student_preferences):
     temp=quality_check(population)
 
+    #getting the list of lecturers in allocation 1 (should be the same in allocation 2 as well as lecturers are constant in allocations)
     keys = list(allocation1.keys())
     keys.remove("fitness")
 
+    #choosing a random point to split the allocation in half.
     cross_over_index = rd.randint(0, num_lectures-1)
+    #splitting the lecturers into two halves
     slice_1_keys = keys[0:cross_over_index]
     slice_2_keys = keys[cross_over_index:num_lectures]
+
 
     alloc_1_first = dict((k, allocation1[k]) for k in slice_1_keys)
     alloc_1_second = dict((k, allocation1[k]) for k in slice_2_keys)
@@ -216,18 +242,24 @@ def cross_over_two_parents(allocation1, allocation2, num_lectures, num_students,
 
     temp=quality_check(population)
   
-    # child_one = {**alloc_1_first, **alloc_2_second}
-    # child_two = {**alloc_2_first, **alloc_1_second}
-    child_one = alloc_1_first.copy()
-    child_one.update(alloc_2_second)
+    #children will maintain having 22 lecturers as their length.
+    child_one = {**alloc_1_first, **alloc_2_second}
+    child_two = {**alloc_2_first, **alloc_1_second}
 
-    child_two = alloc_2_first.copy()
-    child_two.update(alloc_1_second)
+    # child_one = alloc_1_first.copy()
+    # child_one.update(alloc_2_second)
+
+    # child_two = alloc_2_first.copy()
+    # child_two.update(alloc_1_second)
 
     temp=quality_check(population)
 
+    #dealing with possible missing/duplicated students, if any in the created child allocations.
     child_1 = confict_resolution(child_one, keys, num_students, student_preferences)
     child_2 = confict_resolution(child_two, keys, num_students, student_preferences)
+
+    is_child1_valid=quality_check(list(child_1))
+    is_child2_valid=quality_check(list(child_2))
 
     return [child_1, child_2]
 
@@ -275,12 +307,14 @@ def confict_resolution(child, keys, num_students, student_preferences):
 # # The Cross-Over function that acts as a wrapper for the actual cross_over functionality
 def cross_over(population, original_population_size, num_lecturers, num_students, student_preferences):
     children=[]
+    #how many kids need to be made to keep population stable at original_population_size
     needed_kids=original_population_size-len(population)
-    passes=0
-    while len(children) < needed_kids:
 
+    while len(children) < needed_kids:
+        #so the population is shuffled for diverse parentage.
         rd.shuffle(population)
         
+        #skipping 2, to get different parentage
         for i in range(1, len(population), 2): #1,0 & 3 2 ...... 1,0 & 3,2 & 5,4
             #children.append( cross_over_two_parents(list(population[i], population[i+1]), dna_length) )
             #print(f"index1 is {i-1} and index2 is {i}")
@@ -324,30 +358,44 @@ generations_passed=0
 average_fitness_list=[]
 best_fitness_list=[]
 
+#Initialising pseudo-random population consisting of multiple random allocations based on imported capacities and preferences
 population=initialise_population(num_original_population,lecturer_capacties, student_preferences)
+
+#sort based on initial fitness of the population
 population = sorted(population, key=lambda allocation: allocation['fitness'])
 temp=quality_check(population)
 
+#getting average allocation preferences per student.
 get_average_allocation(population[0],student_preferences)
 
 #the driver/evolution loop
 while(generations_passed<max_generations):
     print(f"start generation {generations_passed}")
+
+    #tournament selection
     winners=tournament_selection(tournament_size,population)
+    #assigning the winners to be the population
     population=winners
     population=sorted(population, key=lambda person: person['fitness'])
-    temp=quality_check(population)
-
+    
     #cross-over winners
-    # print("cross-over start")
-    children=cross_over(population, num_original_population, num_lecturers, num_students, student_preferences)
-    quality_check(population)
+    #print("cross-over start")
 
-    # #print("Kids returned:",len(children))
+    #crossing over the winners and producing childerenn/kids
+    children=cross_over(population, num_original_population, num_lecturers, num_students, student_preferences)
+
+    #checking if the crossed over allocation has all students and no duplicate students.
+    valid_after_crossover=quality_check(population)
+
+    print("Is the population valid after crossover:",valid_after_crossover)
+
     
     # add their kids back into population  
     for child in children:
         population.append(child)
+
+
+    valid_after_crossover=quality_check(population)
     temp=quality_check(population)
 
     # print("Population after kids",len(population))
