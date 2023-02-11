@@ -69,13 +69,15 @@ def get_student_preferences():
     worksheet = workbook.active
         
     for row in worksheet.values:
-        student_prefs=[]
+        lecturer_num = -1
+        student_prefs=[0]*22
         for column in row:
             if(type(column)==str): #ensuring that strings like "Supervisor" or "Student" are not read
                 #print(column)
                 continue
             else:
-                student_prefs.append(column-1)
+                lecturer_num+=1
+                student_prefs[column-1]=lecturer_num
         student_preferences.append(student_prefs)
 
     print("Student 46's preferences : ",student_preferences[45])
@@ -444,7 +446,7 @@ while(generations_passed<max_generations):
     # print("Population after kids",len(population))
     # mutate population
     # print("start mutation")
-    if(generations_since_big_mutation>10):
+    if(generations_since_big_mutation>5):
         population = mutate_population(population,tenth_percentage_chance,student_preferences)
     # temp=quality_check(population)
 
