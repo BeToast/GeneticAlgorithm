@@ -351,19 +351,21 @@ def generate_graph(fitness_list, length, title, x_axis, y_axis, min_adjective):
 
 
 ################################################# hyperparamters
-max_generations = 100
-tenth_percentage_chance = 0 # tenth a percent to mutate so 10 = 1%
+max_generations = 200
+tenth_percentage_chance = 20 # tenth a percent to mutate so 10 = 1%
 num_students = 46
 num_lecturers = 22
 lecturer_capacties = calc_lecture_allocation_values(num_students, num_lecturers)
 student_preferences = easy_student_preferences(num_lecturers, lecturer_capacties)
 dna_length=len(lecturer_capacties)
 tournament_size = 2
-num_original_population = 100
+num_original_population = 200
 #################################################
 generations_passed=0
 average_fitness_list=[]
 best_fitness_list=[]
+do_tournament_selection = True
+generations_since_big_mutation = 0
 
 #Initialising pseudo-random population consisting of multiple random allocations based on imported capacities and preferences
 population=initialise_population(num_original_population,lecturer_capacties, student_preferences)
@@ -380,10 +382,12 @@ while(generations_passed<max_generations):
     print(f"start generation {generations_passed}")
 
     #tournament selection
-    winners=tournament_selection(tournament_size,population)
-    #assigning the winners to be the population
-    population=winners
-    population=sorted(population, key=lambda person: person['fitness'])
+    if do_tournament_selection:
+      winners=tournament_selection(tournament_size,population)
+      #assigning the winners to be the population
+      population=winners
+      population=sorted(population, key=lambda person: person['fitness'])
+
     
     #cross-over winners
     #print("cross-over start")
@@ -393,28 +397,23 @@ while(generations_passed<max_generations):
 
     #checking if the crossed over allocation has all students and no duplicate students.
     valid_after_crossover=quality_check(population)
-
-    print("Is the population valid after crossover:",valid_after_crossover)
-
     
     # add their kids back into population  
     for child in children:
         population.append(child)
 
 
-    valid_after_crossover=quality_check(population)
-    temp=quality_check(population)
-
     # print("Population after kids",len(population))
     # mutate population
     # print("start mutation")
-    population = mutate_population(population,tenth_percentage_chance,student_preferences)
-    temp=quality_check(population)
+    if(generations_since_big_mutation>10):
+        population = mutate_population(population,tenth_percentage_chance,student_preferences)
+    # temp=quality_check(population)
 
     average_fitness_list.append(update_fitness_population(population,student_preferences))
     population = sorted(population, key=lambda allocation: allocation['fitness'])
     best_fitness_list.append(population[0]['fitness'])
-    temp=quality_check(population)
+    # temp=quality_check(population)
 
 
     ##increase generations_passed
@@ -426,6 +425,28 @@ while(generations_passed<max_generations):
     average_preference_in_generation=1+ (average_preference_per_mapping/len(population))
     print("In generation "+str(generations_passed)+" the average preference students get is: "+ str(average_preference_in_generation ) )
     
+    generations_since_big_mutation+=1
+    do_tournament_selection = True
+    #### big mutation if converging at local maxima ####
+    len_avgs = len(average_fitness_list)
+    curr_avg = average_fitness_list[-1]
+    #### this was for avg population ####
+    # small_deviation = curr_avg/20
+    # if len(average_fitness_list)>5 and generations_since_big_mutation>10:
+    #     if(curr_avg-small_deviation < average_fitness_list[len_avgs-5] < curr_avg+small_deviation):
+
+    #### using best_fitness ####
+    if len(best_fitness_list)>5 and generations_since_big_mutation>20:
+        if(best_fitness_list[-5] == best_fitness_list[-1]):
+            population_copy = deepcopy(population)
+            best_20_percent = population_copy[0:int(num_original_population*.20)]
+            mutated_remainder = mutate_population(population_copy[int(num_original_population*.20):int(num_original_population/2)],700,student_preferences)
+            best_20_percent.extend(mutated_remainder)
+            population = best_20_percent
+            do_tournament_selection = False
+            generations_since_big_mutation = 0
+
+
     #if perfect fitness then break or max_generations reached break
     if(best_fitness_list[-1]==0): #if convergence has been reached, break out of the loop
         print(f"Converged!")
