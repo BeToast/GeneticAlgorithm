@@ -47,7 +47,26 @@ def quality_check(population) -> bool:
             raise Exception("its broken")
     return fine
 
+def get_lecturer_capacities():
 
+    # return [3,1,2,3,1,2,2,2,1,4,1,1,2,2,3,1,2,1,1,4,4,3] #hard-coded in values from the excel spreadsheet.
+    
+    lecturer_capacities=[]
+
+    workbook = openpyxl.load_workbook("Supervisors.xlsx")
+    worksheet = workbook.active
+        
+    for row in worksheet.values:
+        for column in row:
+            
+            if(type(column)==str): #ensuring that strings like "Supervisor" are not read
+                continue
+            else:
+                lecturer_capacities.append(column)
+            
+    print("lecturer capacities are: ",lecturer_capacities)
+
+    return lecturer_capacities
 
 def get_student_preferences():
     student_preferences=[]
@@ -369,7 +388,7 @@ max_mutate_generations = max_generations*.30 # will not mutate in the last
 tenth_percentage_chance = 50 # tenth a percent to mutate so 10 = 1%
 num_students = 46
 num_lecturers = 22
-lecturer_capacties = calc_lecture_allocation_values(num_students, num_lecturers)
+lecturer_capacties = get_lecturer_capacities()
 student_preferences = easy_student_preferences(num_lecturers, lecturer_capacties)
 dna_length=len(lecturer_capacties)
 tournament_size = 2
