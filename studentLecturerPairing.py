@@ -31,7 +31,8 @@ def get_average_allocation(allocation,student_preferences):
             preferences+=student_preferences[student].index(int(lecturer_index))
 
         average=preferences/len(student_preferences)
-    print("Average preference allocated to students in this allocation",average)
+    #print("Average preference allocated to students in this allocation",average)
+    return average
 
 def quality_check(population) -> bool:
     fine = True
@@ -42,8 +43,8 @@ def quality_check(population) -> bool:
         missing = set(range(num_students))-set(students_allocated)
         conflict_set = set([student for student in students_allocated if students_allocated.count(student) > 1])
         if(len(set(students_allocated))!=46): 
-            raise Exception("its broken")
             fine = False
+            raise Exception("its broken")
     return fine
 
 
@@ -251,8 +252,8 @@ def cross_over_two_parents(allocation1, allocation2, num_lectures, num_students,
 
     # child_one = alloc_1_first.copy()
     # child_one.update(alloc_2_second)
-    child_one = {**alloc_1_first, **alloc_2_second}
-    child_two = {**alloc_2_first, **alloc_1_second}
+    # child_one = {**alloc_1_first, **alloc_2_second}
+    # child_two = {**alloc_2_first, **alloc_1_second}
     # child_one = alloc_1_first.copy()
     # child_one.update(alloc_2_second)
 
@@ -415,9 +416,16 @@ while(generations_passed<max_generations):
     best_fitness_list.append(population[0]['fitness'])
     temp=quality_check(population)
 
+
     ##increase generations_passed
     generations_passed+=1
+    average_preference_per_mapping=0
+    for allocation in population:
+        average_preference_per_mapping+=get_average_allocation(allocation,student_preferences)
 
+    average_preference_in_generation=1+ (average_preference_per_mapping/len(population))
+    print("In generation "+str(generations_passed)+" the average preference students get is: "+ str(average_preference_in_generation ) )
+    
     #if perfect fitness then break or max_generations reached break
     if(best_fitness_list[-1]==0): #if convergence has been reached, break out of the loop
         print(f"Converged!")
