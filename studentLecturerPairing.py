@@ -3,7 +3,7 @@ import random as rd
 import math
 from re import findall
 from copy import deepcopy
-
+import openpyxl
 
 #defining a function that returns the average preferred lecturer that students have been assigned by the algorithm, per allocation.
 
