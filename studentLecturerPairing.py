@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 import math
 from re import findall
 from copy import deepcopy
+import openpyxl
 
 
 #defining a function that returns the average preferred lecturer that students have been assigned by the algorithm, per allocation.
@@ -44,19 +45,44 @@ def quality_check(population) -> bool:
         conflict_set = set([student for student in students_allocated if students_allocated.count(student) > 1])
         if(len(set(students_allocated))!=46): 
             fine = False
+            print("Allocated: ",students_allocated)
+            print("Missing: ",missing)
+            print("Conflict set: ",conflict_set )
             raise Exception("its broken")
     return fine
 
 
 # completely random, does not repicate real scenario at all.
-def random_student_preferences(num_students, num_lecturers):
-    student_preferences = []
-    for i in range(num_students):
-        bingus= list(range(num_lecturers))
-        rd.shuffle(bingus)
-        student_preferences.append(bingus)
-    del bingus # you deserve armageddon
+# def random_student_preferences(num_students, num_lecturers):
+#     student_preferences = []
+#     for i in range(num_students):
+#         bingus= list(range(num_lecturers))
+#         rd.shuffle(bingus)
+#         student_preferences.append(bingus)
+#     del bingus # you deserve armageddon
+#     return student_preferences
+
+def get_student_preferences():
+    student_preferences=[]
+
+    workbook = openpyxl.load_workbook("Student-choices.xlsx")
+    worksheet = workbook.active
+        
+    for row in worksheet.values:
+        student_prefs=[]
+        for column in row:
+            if(type(column)==str): #ensuring that strings like "Supervisor" or "Student" are not read
+                #print(column)
+                continue
+            else:
+                student_prefs.append(column-1)
+        student_preferences.append(student_prefs)
+
+    print("Student 46's preferences : ",student_preferences[45])
+    
     return student_preferences
+
+
 
 # this function creates a allocation where a perfect fitness 0 is possible
 def easy_student_preferences(num_lecturers, lecturer_capacties):
@@ -87,7 +113,7 @@ def update_fitness_population(population, student_preferences): # returns averag
 
 def update_fitness(allocation, student_preferences):
     fitness = 0
-    for i in range(len(allocation)-1): # fitness is first index.
+    for i in range(1,len(allocation)-1):  #accounting for lecturer starting with 1 here
         student_indexes = allocation["lecturer"+str(i)]["students"]
         '''
         student_indexes is a list of students assigned to lectuere [0,5]
@@ -96,20 +122,32 @@ def update_fitness(allocation, student_preferences):
         '''
         lecturer_fitness = 0
         for index in student_indexes:
-            lecturer_fitness += student_preferences[index].index(i)
+            lecturer_fitness += student_preferences[index].index(i) #NOTE: @BLAKE WE HAVE TO ACCOUNT FOR LECTURER 0 NOT BEING THERE
         fitness += lecturer_fitness
     allocation["fitness"]=fitness
     return fitness
 
 
-def calc_lecture_allocation_values(num_students, num_lecturers):
-    min_allocations = math.floor(num_students/num_lecturers)
-    num_excess = num_students%num_lecturers
-    static_dna_values = [min_allocations]*num_lecturers
-    return [3,1,2,3,1,2,2,2,1,4,1,1,2,2,3,1,2,1,1,4,4,3] #hard-coded in values from the excel spreadsheet.
-    for i in range(num_excess):
-        static_dna_values[i]+=1
-    return static_dna_values
+def get_lecturer_capacities():
+
+    # return [3,1,2,3,1,2,2,2,1,4,1,1,2,2,3,1,2,1,1,4,4,3] #hard-coded in values from the excel spreadsheet.
+    
+    lecturer_capacities=[]
+
+    workbook = openpyxl.load_workbook("Supervisors.xlsx")
+    worksheet = workbook.active
+        
+    for row in worksheet.values:
+        for column in row:
+            
+            if(type(column)==str): #ensuring that strings like "Supervisor" are not read
+                continue
+            else:
+                lecturer_capacities.append(column)
+            
+    print("lecturer capacities are: ",lecturer_capacities)
+
+    return lecturer_capacities
     
 
 # randomly initialising the population
@@ -119,11 +157,11 @@ def initialise_population(pop_size, lecturer_capacties, student_preferences):
         population.append({})
         student_index_list=range(0,num_students)
         
-        for i in range(0, num_lecturers):
+        for i in range(0, num_lecturers):#accounting for lecturer starting with 1 here: MAJOR ACCOUNTING
             lecturer="lecturer"+str(i)
-            curr_students = rd.sample(student_index_list,lecturer_capacties[i]) # get students equal to lecturer capacity
+            curr_students = rd.sample(student_index_list,lecturer_capacties[i-1]) # get students equal to lecturer capacity
             
-            population[p][lecturer] = {"capacity": lecturer_capacties[i], "students": curr_students}
+            population[p][lecturer] = {"capacity": lecturer_capacties[i-1], "students": curr_students}
             # population[allocation].update("f{lecturer}" : 
             student_index_list = list(set(student_index_list)-set(curr_students))
 
@@ -179,7 +217,7 @@ def mutate_population(population,mutate_chance,student_preferences):
         allocation = population[allo_index]
 
         #go through all lectures in an allocation, get their students
-        for lecturerIndex in range(len(allocation)-1):
+        for lecturerIndex in range(1,len(allocation)-1): #accounting for lecturer starting with 1 here
 
             #mutation has a (mutate_chance/1000)*100 chance of happening 
             if rd.randint(0,1000)<mutate_chance:
@@ -207,9 +245,9 @@ def mutate_population(population,mutate_chance,student_preferences):
                 unhappy_student=lect_students[unhappy_student_index]
 
                 #choose a random lecturer WITHIN this allocation to swap the unhappy student with
-                random_lecturer_index=rd.randint(0,len(allocation)-2)
+                random_lecturer_index=rd.randint(1,len(allocation)-2) #accounting for lecturer starting with 1 here
                 while random_lecturer_index==lecturerIndex:
-                    random_lecturer_index=rd.randint(0,len(allocation)-2)
+                    random_lecturer_index=rd.randint(1,len(allocation)-2) #accounting for lecturer starting with 1 here
 
                 #index of a random student to swap in the random lecturer
                 student_in_random_lecturer_index = rd.randint(0,allocation["lecturer"+str(random_lecturer_index)]["capacity"]-1)
@@ -355,8 +393,8 @@ max_generations = 200
 tenth_percentage_chance = 20 # tenth a percent to mutate so 10 = 1%
 num_students = 46
 num_lecturers = 22
-lecturer_capacties = calc_lecture_allocation_values(num_students, num_lecturers)
-student_preferences = easy_student_preferences(num_lecturers, lecturer_capacties)
+lecturer_capacties = get_lecturer_capacities()
+student_preferences = get_student_preferences()
 dna_length=len(lecturer_capacties)
 tournament_size = 2
 num_original_population = 200
