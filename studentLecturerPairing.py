@@ -1,5 +1,5 @@
 import random as rd
-import matplotlib.pyplot as plt
+#import matplotlib.pyplot as plt
 import math
 from re import findall
 from copy import deepcopy
@@ -48,15 +48,25 @@ def quality_check(population) -> bool:
     return fine
 
 
-# completely random, does not repicate real scenario at all.
-def random_student_preferences(num_students, num_lecturers):
-    student_preferences = []
-    for i in range(num_students):
-        bingus= list(range(num_lecturers))
-        rd.shuffle(bingus)
-        student_preferences.append(bingus)
-    del bingus # you deserve armageddon
-    return student_preferences
+
+def get_student_preferences():
+    student_preferences=[]
+
+    workbook = openpyxl.load_workbook("Student-choices.xlsx")
+    worksheet = workbook.active
+        
+    for row in worksheet.values:
+        student_prefs=[]
+        for column in row:
+            if(type(column)==str): #ensuring that strings like "Supervisor" or "Student" are not read
+                #print(column)
+                continue
+            else:
+                student_prefs.append(column)
+        student_preferences.append(student_prefs)
+
+    print("Student 46's preferences : ",student_preferences[45])
+    
 
 # this function creates a allocation where a perfect fitness 0 is possible
 def easy_student_preferences(num_lecturers, lecturer_capacties):
@@ -96,7 +106,9 @@ def update_fitness(allocation, student_preferences):
         '''
         lecturer_fitness = 0
         for index in student_indexes:
+
             lecturer_fitness += student_preferences[index][i] ##THIS SHOULD FIX IT AND HAVE SOLUTION ADAPT TO THE DATA
+
         fitness += lecturer_fitness
     allocation["fitness"]=fitness
     return fitness
@@ -119,7 +131,8 @@ def initialise_population(pop_size, lecturer_capacties, student_preferences):
         population.append({})
         student_index_list=range(0,num_students)
         
-        for i in range(0, num_lecturers):
+        for i in range(1, num_lecturers+1):#accounting for lecturer starting with 1 here: MAJOR ACCOUNTING
+
             lecturer="lecturer"+str(i)
             curr_students = rd.sample(student_index_list,lecturer_capacties[i]) # get students equal to lecturer capacity
             
