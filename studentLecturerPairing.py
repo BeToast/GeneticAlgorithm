@@ -1,5 +1,5 @@
 import random as rd
-import matplotlib.pyplot as plt
+#import matplotlib.pyplot as plt
 import math
 from re import findall
 from copy import deepcopy
@@ -75,7 +75,7 @@ def get_student_preferences():
                 #print(column)
                 continue
             else:
-                student_prefs.append(column-1)
+                student_prefs.append(column)
         student_preferences.append(student_prefs)
 
     print("Student 46's preferences : ",student_preferences[45])
@@ -122,7 +122,7 @@ def update_fitness(allocation, student_preferences):
         '''
         lecturer_fitness = 0
         for index in student_indexes:
-            lecturer_fitness += student_preferences[index].index(i) #NOTE: @BLAKE WE HAVE TO ACCOUNT FOR LECTURER 0 NOT BEING THERE
+            lecturer_fitness += student_preferences[index][i] #NOTE: @BLAKE WE HAVE TO ACCOUNT FOR LECTURER 0 NOT BEING THERE
         fitness += lecturer_fitness
     allocation["fitness"]=fitness
     return fitness
@@ -157,7 +157,7 @@ def initialise_population(pop_size, lecturer_capacties, student_preferences):
         population.append({})
         student_index_list=range(0,num_students)
         
-        for i in range(0, num_lecturers):#accounting for lecturer starting with 1 here: MAJOR ACCOUNTING
+        for i in range(1, num_lecturers+1):#accounting for lecturer starting with 1 here: MAJOR ACCOUNTING
             lecturer="lecturer"+str(i)
             curr_students = rd.sample(student_index_list,lecturer_capacties[i-1]) # get students equal to lecturer capacity
             
