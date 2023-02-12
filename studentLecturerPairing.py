@@ -153,9 +153,9 @@ def initialise_population(pop_size, lecturer_capacties, student_preferences):
         for i in range(1, num_lecturers+1):#accounting for lecturer starting with 1 here: MAJOR ACCOUNTING
 
             lecturer="lecturer"+str(i)
-            curr_students = rd.sample(student_index_list,lecturer_capacties[i]) # get students equal to lecturer capacity
+            curr_students = rd.sample(student_index_list,lecturer_capacties[i-1]) # get students equal to lecturer capacity
             
-            population[p][lecturer] = {"capacity": lecturer_capacties[i], "students": curr_students}
+            population[p][lecturer] = {"capacity": lecturer_capacties[i-1], "students": curr_students}
             # population[allocation].update("f{lecturer}" : 
             student_index_list = list(set(student_index_list)-set(curr_students))
 
