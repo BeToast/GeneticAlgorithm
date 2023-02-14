@@ -397,7 +397,6 @@ population=initialise_population(num_original_population,lecturer_capacties, stu
 population = sorted(population, key=lambda allocation: allocation['fitness'])
 temp=quality_check(population)
 
-
 #the driver/evolution loop
 while(generations_passed<max_generations):
     print(f"start generation {generations_passed}")
@@ -434,10 +433,10 @@ while(generations_passed<max_generations):
     # temp=quality_check(population)
 
 
-    ##increase generations_passed
+    # increase generations_passed
     generations_passed+=1
 
-    #calculating and printing out the average preference obtained by a student in each generation.
+    # calculating and printing out the average preference obtained by a student in each generation.
     average_preference_per_mapping=0
     for allocation in population:
         average_preference_per_mapping+=get_average_allocation(allocation,student_preferences)
@@ -445,7 +444,8 @@ while(generations_passed<max_generations):
     average_preference_in_generation=1+ (average_preference_per_mapping/len(population))
     print("In generation "+str(generations_passed)+" the average preference students get is: "+ str(average_preference_in_generation ) )
     
-    generations_since_big_mutation+=1
+    generations_since_big_mutation+=1 # couter used for disabling big mutations after a big mutation.
+                                      # this help to converge at another local minima before mutating again.
     do_tournament_selection = True
     #### big mutation if converging at local maxima ####
     len_avgs = len(average_fitness_list)
@@ -456,16 +456,15 @@ while(generations_passed<max_generations):
     #     if(curr_avg-small_deviation < average_fitness_list[len_avgs-5] < curr_avg+small_deviation):
 
     #### using best_fitness ####
-    if len(best_fitness_list)>5 and generations_since_big_mutation>20:
-        if(best_fitness_list[-5] == best_fitness_list[-1]):
-            population_copy = deepcopy(population)
-            best_20_percent = population_copy[0:int(num_original_population*.20)]
-            mutated_remainder = mutate_population(population_copy[int(num_original_population*.20):int(num_original_population/2)],700,student_preferences)
-            best_20_percent.extend(mutated_remainder)
-            population = best_20_percent
-            do_tournament_selection = False
-            generations_since_big_mutation = 0
-
+    if len(best_fitness_list)>5 and generations_since_big_mutation>20: # ensure that its been 20 generation
+        if(best_fitness_list[-5] == best_fitness_list[-1]): # if best fitness 5 generations ago is the same, then big mutation.
+            population_copy = deepcopy(population) # save a copy
+            best_20_percent = population_copy[0:int(num_original_population*.20)] # keep top 20%
+            mutated_remainder = mutate_population(population_copy[int(num_original_population*.20):int(num_original_population/2)],700,student_preferences) # mutate population witha hug chance.
+            best_20_percent.extend(mutated_remainder) # add mutation remainder
+            population = best_20_percent # overwrite global variable
+            do_tournament_selection = False # disable tournmaent selction for this iteration.
+            generations_since_big_mutation = 0 # reset counter.
 
     #if perfect fitness then break or max_generations reached break
     if(best_fitness_list[-1]==0): #if convergence has been reached, break out of the loop
